@@ -22,6 +22,8 @@ Open `SakuraTactics.uproject` in a compatible Unreal Engine installation. Unreal
 
 GitHub is the source of truth for code, issues, proposals, feature requests, technical discussions, contributions, and project decisions. Discord is for community conversation, discovery, announcements, and general public discussion.
 
+Join the [Sakura Tactics project chat on Discord](https://discord.com/channels/1536853959463936100/1539311739340849234).
+
 Contributions are welcome when they support or extend the project north star. Contributions that contradict that direction are out of scope.
 
 ## License
