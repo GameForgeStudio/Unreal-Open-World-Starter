@@ -1,0 +1,35 @@
+# Unreal generated output and caches
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
+Plugins/*/Binaries/
+Plugins/*/DerivedDataCache/
+Plugins/*/Intermediate/
+Plugins/*/Saved/
+Build/Windows/FileOpenOrder/
+
+# IDE and generated project files
+.vs/
+.vscode/
+.idea/
+*.sln
+*.suo
+*.opensdf
+*.sdf
+*.VC.db
+*.VC.opendb
+*.xcodeproj
+*.xcworkspace
+*.xcuserstate
+
+# Local Unreal/Codex/MCP settings and investigation scratch
+Config/DefaultEditorPerProjectUserSettings.ini
+.codex/
+.mcp.json
+tmp_*
+
+# Epic template/example assets are not part of this public starter repository.
+# Obtain them from a licensed Unreal Engine installation if desired.
+Content/Characters/Mannequins/
+Content/Input/

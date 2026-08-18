@@ -1,0 +1,434 @@
+---
+name: animation-blueprint
+display_name: Animation Blueprints
+description: Navigate, inspect, and author Animation Blueprints — state machines, states, transitions, and transition rules (AnimGraphService). Use when the user asks to create or edit an Animation Blueprint/AnimBP, add a state machine or states, wire transitions between states, set a state's animation, or inspect AnimGraph structure.
+vibeue_classes:
+  - AnimGraphService
+  - AssetDiscoveryService
+  - BlueprintService
+unreal_classes:
+  - EditorAssetLibrary
+keywords:
+  - animation
+  - animblueprint
+  - abp
+  - state machine
+  - state
+  - transition
+  - transition rule
+  - animgraph
+  - locomotion
+  - combat
+  - authoring
+---
+
+> 🧠 **Brains complement:** IF an `unreal-engine-skills-manager` tool (external MCP) exists in this session, call it with `{action: "load", skill: "animation-system"}` for UE domain knowledge on this topic — correct APIs, architecture, best practices — and treat it as the rubric for any review / "best practices" question. If no such tool is available (e.g. running under Claude Code or Codex without that MCP), skip this line entirely and proceed with this skill alone — do NOT attempt the call.
+
+# Animation Blueprint Skill
+
+> **Loading skills:** skills load through the engine's `AgentSkillToolset` (`ListSkills`/`GetSkills`) —
+> there is no `vibeue-skills-manager` tool. Run VibeUE services with `execute_python_code`
+> (`unreal.AnimGraphService.<method>()`); reach engine toolsets with `call_tool`.
+
+> An AnimBP **is a Blueprint**. The state-machine/AnimGraph authoring here is VibeUE
+> `AnimGraphService` (intact). For its **variables and compile**, note VibeUE's `BlueprintService`
+> was trimmed: **variable creation and blueprint compile moved to the engine** toolset
+> `editor_toolset.toolsets.blueprint.BlueprintTools` (`add_variable`, `compile_blueprint`), called via
+> `call_tool`. `BlueprintService` still has `list_variables`, `get_variable_info`,
+> `set_variable_default_value`, `variable_exists`, components, and overridable functions. Bool fields
+> on info structs drop the C++ `b` prefix in Python — use `is_pure`, `is_output`, `already_overridden`
+> (NOT `b_is_pure`); call `discover_python_class` to confirm field names rather than guessing.
+
+## ⚠️ #1 GOTCHA — Transitions need a RULE or they NEVER fire
+
+`add_transition()` only draws the arrow between two states. The transition's rule graph
+starts empty, which evaluates to **false**, so the transition is **inert** — the state
+machine will never move. You MUST set a rule on every transition:
+
+```python
+import unreal
+abp = "/Game/ABP_Character"
+BT  = "editor_toolset.toolsets.blueprint.BlueprintTools"
+
+# 1) Add the bool/float variable the rule reads, then COMPILE so it resolves.
+#    Variable creation + compile are ENGINE BlueprintTools (call_tool), not VibeUE:
+call_tool(BT, "add_variable", {"blueprint": {"refPath": abp}, "variable_name": "bIsDead", "variable_type": "bool"})
+call_tool(BT, "compile_blueprint", {"blueprint": {"refPath": abp}})
+# (Run describe_toolset(BT) for exact arg names.)
+
+# 2) Draw the transition (VibeUE AnimGraphService)
+unreal.AnimGraphService.add_transition(abp, "Locomotion", "Idle", "Dead", 0.2)
+
+# 3) Give it a rule — THIS is what makes it fire
+unreal.AnimGraphService.set_transition_rule_from_bool(abp, "Locomotion", "Idle", "Dead", "bIsDead")
+```
+
+Rule options:
+- `set_transition_rule_from_bool(abp, machine, src, dst, bool_var, invert=False)`
+- `set_transition_rule_comparison(abp, machine, src, dst, float_var, op, value)` — op ∈ `greater/less/greater_equal/less_equal/equal/not_equal`
+- `set_transition_rule_automatic(abp, machine, src, dst, trigger_time=-1.0)` — fires when the source state's animation is (almost) finished; perfect for one-shots (attack→idle)
+- `clear_transition_rule(...)` — non-destructively reset a rule
+
+After authoring, **always** run `validate_state_machine()` (see below) and compile.
+
+## Critical Rules
+
+### Opening Animation States
+
+Use `AnimGraphService` to navigate directly to states and graphs:
+
+```python
+import unreal
+
+# Open an AnimBP's main AnimGraph
+unreal.AnimGraphService.open_anim_graph("/Game/ABP_Character", "AnimGraph")
+
+# Open a specific state inside a state machine
+unreal.AnimGraphService.open_anim_state("/Game/ABP_Character", "Locomotion", "IdleLoop")
+
+# Open a transition rule
+unreal.AnimGraphService.open_transition("/Game/ABP_Character", "Locomotion", "Idle", "Walk")
+```
+
+### ⚠️ State Machine Names
+
+State machine names come from the node title, not the graph name. Use `list_state_machines()` to get the correct names:
+
+```python
+machines = unreal.AnimGraphService.list_state_machines("/Game/ABP_Character")
+for m in machines:
+    print(f"Machine: {m.machine_name}")  # Use THIS name for open_anim_state
+```
+
+### ⚠️ Case Sensitivity
+
+All name lookups are case-insensitive, but prefer using exact names from introspection:
+
+```python
+# Both work:
+unreal.AnimGraphService.open_anim_state(path, "State Controller", "In Air Loop")
+unreal.AnimGraphService.open_anim_state(path, "state controller", "in air loop")
+```
+
+---
+
+## Workflows
+
+### Create Animation Blueprint
+
+**CRITICAL**: AnimBlueprints require a skeleton reference. Always find the skeleton first.
+
+```python
+import unreal
+
+# Step 1: Find skeleton from reference blueprint
+ref_bp_path = "/Game/Blueprints/SandboxCharacter_CMC_ABP"
+if unreal.EditorAssetLibrary.does_asset_exist(ref_bp_path):
+    ref_bp = unreal.load_asset(ref_bp_path)
+    skeleton = ref_bp.get_editor_property('target_skeleton')
+    skeleton_path = skeleton.get_path_name()
+    print(f"Using skeleton: {skeleton_path}")
+else:
+    # Or load directly if you know the path
+    skeleton_path = "/Game/Characters/UEFN_Mannequin/Meshes/SK_UEFN_Mannequin"
+    skeleton = unreal.load_asset(skeleton_path)
+
+# Step 2: Delete existing if needed
+asset_path = "/Game/Tests/ABP_TestCharacter"
+if unreal.EditorAssetLibrary.does_asset_exist(asset_path):
+    unreal.EditorAssetLibrary.delete_asset(asset_path)
+
+# Step 3: Create AnimBlueprint with skeleton
+asset_tools = unreal.AssetToolsHelpers.get_asset_tools()
+blueprint_factory = unreal.AnimBlueprintFactory()
+blueprint_factory.set_editor_property("target_skeleton", skeleton)
+blueprint_factory.set_editor_property("parent_class", unreal.AnimInstance)
+
+animation_blueprint = asset_tools.create_asset(
+    "ABP_TestCharacter",
+    "/Game/Tests",
+    unreal.AnimBlueprint,
+    blueprint_factory
+)
+
+# Step 4: Save
+if animation_blueprint:
+    unreal.EditorAssetLibrary.save_asset(asset_path, only_if_is_dirty=False)
+    print(f"Created: {asset_path}")
+```
+
+**Opening in Editor**:
+```python
+# Use open_editor_for_assets (plural) with list
+editor_subsystem = unreal.get_editor_subsystem(unreal.AssetEditorSubsystem)
+opened = editor_subsystem.open_editor_for_assets([animation_blueprint])
+```
+
+**⚠️ DO NOT** use `AssetEditorSubsystem.open_editor_for_asset()` (singular) - it will cause AttributeError.
+
+### Discover Animation Blueprint Structure
+
+```python
+import unreal
+
+abp_path = "/Game/Blueprints/SandboxCharacter_CMC_ABP"
+
+# Get overview
+parent = unreal.AnimGraphService.get_parent_class(abp_path)
+skeleton = unreal.AnimGraphService.get_skeleton(abp_path)
+print(f"Parent: {parent}, Skeleton: {skeleton}")
+
+# List all graphs
+graphs = unreal.AnimGraphService.list_graphs(abp_path)
+for g in graphs:
+    print(f"Graph: {g.graph_name} ({g.graph_type}), Nodes: {g.node_count}")
+```
+
+### List State Machines and States
+
+```python
+import unreal
+
+abp_path = "/Game/ABP_Character"
+
+# Find all state machines
+machines = unreal.AnimGraphService.list_state_machines(abp_path)
+for machine in machines:
+    print(f"\nState Machine: {machine.machine_name} ({machine.state_count} states)")
+
+    # List states in this machine
+    states = unreal.AnimGraphService.list_states_in_machine(abp_path, machine.machine_name)
+    for state in states:
+        end_marker = " [END]" if state.is_end_state else ""
+        print(f"  - {state.state_name} ({state.state_type}){end_marker}")
+```
+
+### Navigate to Specific State
+
+```python
+import unreal
+
+abp_path = "/Game/Blueprints/SandboxCharacter_CMC_ABP"
+
+# Open the AnimBP and navigate to a specific state
+unreal.AnimGraphService.open_anim_state(
+    abp_path,
+    "State Controller",  # State machine name
+    "In Air Loop"        # State name
+)
+```
+
+### Inspect Transitions
+
+```python
+import unreal
+
+abp_path = "/Game/ABP_Character"
+machine_name = "Locomotion"
+
+# Get all transitions in a state machine
+transitions = unreal.AnimGraphService.get_state_transitions(abp_path, machine_name)
+for t in transitions:
+    auto = " [AUTO]" if t.is_automatic else ""
+    print(f"{t.source_state} -> {t.dest_state} (blend: {t.blend_duration}s){auto}")
+
+# Get transitions for a specific state
+idle_transitions = unreal.AnimGraphService.get_state_transitions(abp_path, machine_name, "Idle")
+```
+
+---
+
+## Authoring State Machines (build / edit)
+
+### ⭐ Fastest path: declarative `build_state_machine`
+
+Build (or extend) a whole machine from one JSON spec in a single atomic, idempotent call.
+Re-running it never duplicates existing states/transitions. It sets animations, rules,
+the entry state, then compiles — and returns a JSON report.
+
+```python
+import unreal, json
+
+abp = "/Game/ABP_Character"
+BT  = "editor_toolset.toolsets.blueprint.BlueprintTools"
+
+# Add the variables the rules read FIRST, then compile so the rules can resolve them.
+# Variable creation + compile are ENGINE BlueprintTools (call_tool), not VibeUE:
+call_tool(BT, "add_variable", {"blueprint": {"refPath": abp}, "variable_name": "Speed",   "variable_type": "float"})
+call_tool(BT, "add_variable", {"blueprint": {"refPath": abp}, "variable_name": "bAttack", "variable_type": "bool"})
+call_tool(BT, "compile_blueprint", {"blueprint": {"refPath": abp}})
+
+spec = {
+    "states": [
+        {"name": "Idle",   "animation": "/Game/Anims/Idle",   "loop": True,  "pos": [0, 0]},
+        {"name": "Walk",   "animation": "/Game/Anims/Walk",   "loop": True,  "pos": [350, 0]},
+        {"name": "Attack", "animation": "/Game/Anims/Attack", "loop": False, "pos": [350, 250]},
+    ],
+    "transitions": [
+        {"from": "Idle",   "to": "Walk",   "rule": {"type": "comparison", "variable": "Speed", "op": "greater", "value": 10}, "blend": 0.15},
+        {"from": "Walk",   "to": "Idle",   "rule": {"type": "comparison", "variable": "Speed", "op": "less_equal", "value": 10}},
+        {"from": "Idle",   "to": "Attack", "rule": {"type": "bool", "variable": "bAttack"}},
+        {"from": "Attack", "to": "Idle",   "rule": {"type": "automatic"}},  # when the attack anim ends
+    ],
+    "entry": "Idle",
+}
+
+report = json.loads(unreal.AnimGraphService.build_state_machine(abp, "Locomotion", json.dumps(spec)))
+print(report)  # {"success":true,"states_created":3,"transitions_created":4,"errors":[]}
+```
+
+`rule.type` ∈ `bool` (`variable`, optional `invert`), `comparison` (`variable`,`op`,`value`),
+`automatic` (optional `trigger_time`), `always` (always-true), or omit `rule` to leave it inert.
+
+### Manual / incremental authoring
+
+```python
+import unreal
+abp = "/Game/ABP_Character"
+
+# State machine + states
+unreal.AnimGraphService.add_state_machine(abp, "Locomotion", 0, 0)
+unreal.AnimGraphService.add_state(abp, "Locomotion", "Idle", 0, 0)
+unreal.AnimGraphService.add_state(abp, "Locomotion", "Walk", 350, 0)
+
+# One call: create+assign the sequence player inside the state AND wire it to Output Pose
+unreal.AnimGraphService.set_state_animation(abp, "Locomotion", "Idle", "/Game/Anims/Idle", True)
+unreal.AnimGraphService.set_state_animation(abp, "Locomotion", "Walk", "/Game/Anims/Walk", True)
+
+# Default/entry state
+unreal.AnimGraphService.set_entry_state(abp, "Locomotion", "Idle")
+
+# Transitions + rules (rules are mandatory — see top gotcha)
+unreal.AnimGraphService.add_transition(abp, "Locomotion", "Idle", "Walk", 0.15)
+unreal.AnimGraphService.set_transition_rule_comparison(abp, "Locomotion", "Idle", "Walk", "Speed", "greater", 10.0)
+unreal.AnimGraphService.set_transition_priority(abp, "Locomotion", "Idle", "Walk", 1)
+
+# Compile via engine BlueprintTools:
+call_tool("editor_toolset.toolsets.blueprint.BlueprintTools", "compile_blueprint", {"blueprint": {"refPath": abp}})
+```
+
+### Verify before claiming success — `validate_state_machine`
+
+```python
+result = unreal.AnimGraphService.validate_state_machine(abp, "Locomotion")
+print(f"valid={result.is_valid}  states={result.state_count}  transitions={result.transition_count}")
+for e in result.errors:   print("ERROR:", e)    # inert transitions, no entry state
+for w in result.warnings: print("WARN :", w)    # unreachable states, states with no animation
+```
+
+Treat any `errors` as a build failure. The most common error is an **inert transition**
+(a transition with no rule) — fix it with one of the `set_transition_rule_*` calls.
+
+---
+
+### Find Used Animation Sequences
+
+```python
+import unreal
+
+abp_path = "/Game/ABP_Character"
+
+sequences = unreal.AnimGraphService.get_used_anim_sequences(abp_path)
+for seq in sequences:
+    print(f"{seq.sequence_name}")
+    print(f"  Path: {seq.sequence_path}")
+    print(f"  Used in: {seq.used_in_graph}")
+```
+
+### Focus on Node by ID
+
+```python
+import unreal
+
+abp_path = "/Game/ABP_Character"
+
+# If you have a node GUID from get_nodes_in_graph
+node_id = "ABC123-DEF456-..."
+unreal.AnimGraphService.focus_node(abp_path, node_id)
+```
+
+---
+
+## Data Structures
+
+> **Python Naming Convention**: C++ types like `FAnimStateMachineInfo` are exposed as `AnimStateMachineInfo` in Python (no `F` prefix).
+
+### AnimStateMachineInfo
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `machine_name` | string | Display name of the state machine |
+| `node_id` | string | Node GUID |
+| `state_count` | int | Number of states |
+| `parent_graph_name` | string | Graph containing this machine |
+
+### AnimStateInfo
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `state_name` | string | Display name of the state |
+| `node_id` | string | Node GUID |
+| `state_type` | string | "State", "Conduit", "Entry" |
+| `is_end_state` | bool | True if no outgoing transitions |
+| `pos_x` | float | X position in graph |
+| `pos_y` | float | Y position in graph |
+
+### AnimTransitionInfo
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `transition_name` | string | Display name |
+| `node_id` | string | Node GUID |
+| `source_state` | string | Source state name |
+| `dest_state` | string | Destination state name |
+| `priority` | int | Priority (lower = higher) |
+| `blend_duration` | float | Crossfade time in seconds |
+| `is_automatic` | bool | Auto-transition based on sequence |
+| `rule_type` | string | `None` (inert), `Bool`, `Comparison`, `Automatic`, `Custom` |
+| `rule_variable` | string | Bound variable name (for Bool/Comparison rules) |
+| `rule_summary` | string | Human-readable rule, e.g. `Speed > 150`, `bIsDead == true` |
+| `has_rule` | bool | **False = inert (never fires).** True = transition can fire |
+
+### AnimStateMachineValidationResult
+
+Returned by `validate_state_machine()`.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `is_valid` | bool | True when there are no blocking errors |
+| `state_count` | int | Number of states |
+| `transition_count` | int | Number of transitions |
+| `errors` | [string] | Blocking problems (inert transitions, no entry state) |
+| `warnings` | [string] | Non-blocking issues (unreachable states, states with no animation) |
+
+---
+
+## Common Patterns
+
+### Check if Asset is AnimBP
+
+```python
+import unreal
+
+if unreal.AnimGraphService.is_anim_blueprint("/Game/SomeAsset"):
+    # It's an AnimBP, safe to use AnimGraphService
+    machines = unreal.AnimGraphService.list_state_machines("/Game/SomeAsset")
+```
+
+### Iterate All States Across All Machines
+
+```python
+import unreal
+
+abp_path = "/Game/ABP_Character"
+
+machines = unreal.AnimGraphService.list_state_machines(abp_path)
+for machine in machines:
+    states = unreal.AnimGraphService.list_states_in_machine(abp_path, machine.machine_name)
+    for state in states:
+        print(f"{machine.machine_name}/{state.state_name}")
+```
+
+## Sample scripts (run via `execute_python_code`)
+
+- **`scripts/build_state_machine.txt`** — add a state machine with two states, set state animations, add a transition, compile.

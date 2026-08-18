@@ -1,0 +1,317 @@
+# Build and Launch an Unreal Engine project in Development Mode without Debugger
+# Can live anywhere inside the project tree (e.g. Plugins/VibeUE).
+# Walks UP from its own directory until it finds a .uproject file.
+
+param(
+    [string]$Mode = "Development",
+    [switch]$Clean,
+    [switch]$SkipBuild,
+    # Force a full recompile of the VibeUE plugin under strict settings.
+    # Strict compilation (warnings-as-errors / deprecation-as-error) is enforced
+    # module-wide via VibeUE.Build.cs (bWarningsAsErrors = true), so every build is
+    # strict. Incremental builds, however, only recompile changed files — so a stale
+    # object file can hide a freshly-deprecated engine API. -StrictRebuild wipes the
+    # plugin's Binaries/Intermediate so ALL plugin files are recompiled and rechecked.
+    [switch]$StrictRebuild,
+    # Block until the launched editor writes its readiness signal
+    # (Saved/VibeUE/Signals/editor-<pid>-true.json, written once VibeUE's toolsets are
+    # registered), so agents can chain the next MCP call without watching the file
+    # themselves. Exit codes: 0 ready, 2 timed out, 3 editor exited before ready.
+    [switch]$WaitForReady,
+    [int]$ReadyTimeoutSec = 120
+)
+
+# ============================================================================
+# Walk up the directory tree to find the .uproject
+# ============================================================================
+$searchDir = $PSScriptRoot
+$uprojectFile = $null
+
+while ($searchDir) {
+    $found = Get-ChildItem -Path $searchDir -Filter "*.uproject" -File -ErrorAction SilentlyContinue
+    if ($found) {
+        if ($found.Count -gt 1) {
+            Write-Host "WARNING: Multiple .uproject files found in $searchDir, using first: $($found[0].Name)" -ForegroundColor Yellow
+        }
+        $uprojectFile = $found[0]
+        break
+    }
+    $parent = Split-Path $searchDir -Parent
+    if ($parent -eq $searchDir) { break }   # reached filesystem root
+    $searchDir = $parent
+}
+
+if (-not $uprojectFile) {
+    Write-Host "ERROR: No .uproject file found walking up from $PSScriptRoot" -ForegroundColor Red
+    exit 1
+}
+
+$projectPath = $uprojectFile.FullName
+$projectName = $uprojectFile.BaseName
+$projectRoot = $uprojectFile.DirectoryName
+
+# ============================================================================
+# Auto-discover Unreal Engine install from EngineAssociation in .uproject
+# ============================================================================
+$uprojectJson = Get-Content $projectPath -Raw | ConvertFrom-Json
+$engineAssociation = $uprojectJson.EngineAssociation
+
+# First try: look up custom/source builds from registry (HKCU)
+$enginePath = $null
+try {
+    $customBuilds = Get-ItemProperty "HKCU:\SOFTWARE\Epic Games\Unreal Engine\Builds" -ErrorAction SilentlyContinue
+    if ($customBuilds -and $customBuilds.$engineAssociation) {
+        $enginePath = $customBuilds.$engineAssociation
+    }
+} catch {}
+
+# Second try: standard launcher installs (HKLM)
+if (-not $enginePath) {
+    try {
+        $regPath = "HKLM:\SOFTWARE\EpicGames\Unreal Engine\$engineAssociation"
+        $regEntry = Get-ItemProperty $regPath -ErrorAction SilentlyContinue
+        if ($regEntry -and $regEntry.InstalledDirectory) {
+            $enginePath = $regEntry.InstalledDirectory
+        }
+    } catch {}
+}
+
+# Third try: well-known path pattern (e.g. UE_5.7)
+if (-not $enginePath) {
+    $candidates = @(
+        "E:\Program Files\Epic Games\UE_$engineAssociation",
+        "C:\Program Files\Epic Games\UE_$engineAssociation",
+        "D:\Program Files\Epic Games\UE_$engineAssociation"
+    )
+    foreach ($c in $candidates) {
+        if (Test-Path $c) { $enginePath = $c; break }
+    }
+}
+
+# Fourth try: ask for a manual path rather than just giving up (the Epic launcher
+# doesn't always register a drive, e.g. an engine installed on a non-default drive).
+if (-not $enginePath) {
+    Write-Host "Could not auto-detect Unreal Engine '$engineAssociation' from the registry or common install paths." -ForegroundColor Yellow
+    # Non-interactive session (CI, agent-run builds): fail fast instead of prompting.
+    if ([Console]::IsInputRedirected -or ([Environment]::GetCommandLineArgs() -match '^-NonI')) {
+        Write-Host "ERROR: Non-interactive session - cannot prompt for a path. Set the engine path manually or register the install." -ForegroundColor Red
+        exit 1
+    }
+    while (-not $enginePath) {
+        $manualPath = Read-Host "Enter the full path to your Unreal Engine install (e.g. D:\Program Files\Epic Games\UE_$engineAssociation), or leave blank to abort"
+        if ([string]::IsNullOrWhiteSpace($manualPath)) {
+            Write-Host "ERROR: No Unreal Engine path provided. Aborting." -ForegroundColor Red
+            exit 1
+        }
+        $manualPath = $manualPath.Trim().Trim('"')
+        if (Test-Path (Join-Path $manualPath "Engine\Build\BatchFiles\Build.bat")) {
+            $enginePath = $manualPath
+        } else {
+            Write-Host "That path doesn't look like an Unreal Engine install (expected Engine\Build\BatchFiles\Build.bat under it)." -ForegroundColor Red
+        }
+    }
+}
+
+$buildBat  = Join-Path $enginePath "Engine\Build\BatchFiles\Build.bat"
+$editorExe = Join-Path $enginePath "Engine\Binaries\Win64\UnrealEditor.exe"
+
+Write-Host "=== $projectName Build and Launch Script ===" -ForegroundColor Cyan
+Write-Host "Script  : $PSScriptRoot" -ForegroundColor Gray
+Write-Host "Project : $projectPath" -ForegroundColor Yellow
+Write-Host "Engine  : $enginePath" -ForegroundColor Yellow
+Write-Host "Mode    : $Mode" -ForegroundColor Yellow
+
+# Stop any running Unreal Engine processes gracefully
+$unrealProcesses = Get-Process | Where-Object { 
+    $_.ProcessName -like "UnrealEditor*" -or 
+    $_.ProcessName -like "CrashReportClient*" -or 
+    $_.ProcessName -eq "UnrealTraceServer" -or
+    ($_.ProcessName -eq "crashpad_handler" -and $_.MainModule.FileName -like "*Epic Games*")
+}
+
+if ($unrealProcesses) {
+    Write-Host "Requesting Unreal Engine processes to close gracefully..." -ForegroundColor Yellow
+    $unrealProcesses | ForEach-Object {
+        if ($_.MainWindowHandle -ne 0) {
+            $_.CloseMainWindow() | Out-Null
+        }
+    }
+    
+    # Wait up to 15 seconds for graceful shutdown
+    $timeout = 15
+    $elapsed = 0
+    $remaining = Get-Process | Where-Object { 
+        $_.ProcessName -like "UnrealEditor*" -or 
+        $_.ProcessName -like "CrashReportClient*" -or 
+        $_.ProcessName -eq "UnrealTraceServer" -or
+        ($_.ProcessName -eq "crashpad_handler" -and $_.MainModule.FileName -like "*Epic Games*")
+    }
+    
+    while ($remaining -and ($elapsed -lt $timeout)) {
+        Start-Sleep 1
+        $elapsed++
+        Write-Host "  Waiting for processes to close... ($elapsed/$timeout seconds)" -ForegroundColor Gray
+        $remaining = Get-Process | Where-Object { 
+            $_.ProcessName -like "UnrealEditor*" -or 
+            $_.ProcessName -like "CrashReportClient*" -or 
+            $_.ProcessName -eq "UnrealTraceServer" -or
+            ($_.ProcessName -eq "crashpad_handler" -and $_.MainModule.FileName -like "*Epic Games*")
+        }
+    }
+    
+    # Force kill if still running
+    $remaining = Get-Process | Where-Object { 
+        $_.ProcessName -like "UnrealEditor*" -or 
+        $_.ProcessName -like "CrashReportClient*" -or 
+        $_.ProcessName -eq "UnrealTraceServer" -or
+        ($_.ProcessName -eq "crashpad_handler" -and $_.MainModule.FileName -like "*Epic Games*")
+    }
+    
+    if ($remaining) {
+        Write-Host "Processes didn't close gracefully, forcing shutdown..." -ForegroundColor Yellow
+        $remaining | ForEach-Object {
+            Write-Host "  Killing $($_.ProcessName) (PID: $($_.Id)) and child processes..." -ForegroundColor Gray
+            taskkill /F /PID $_.Id /T 2>$null
+        }
+        Start-Sleep 3
+        
+        $stillRunning = Get-Process | Where-Object { $_.ProcessName -like "UnrealEditor*" }
+        if ($stillRunning) {
+            Write-Host "  Some processes still running, using taskkill by name..." -ForegroundColor Yellow
+            taskkill /F /IM UnrealEditor.exe /T 2>$null
+            Start-Sleep 2
+        }
+        Write-Host "All Unreal Engine processes terminated!" -ForegroundColor Green
+    } else {
+        Write-Host "All processes closed gracefully!" -ForegroundColor Green
+    }
+} else {
+    Write-Host "No running Unreal Engine processes found." -ForegroundColor Gray
+}
+
+# Clean build if requested (relative to project root)
+if ($Clean) {
+    Write-Host "Cleaning intermediate and binary files..." -ForegroundColor Yellow
+    $cleanPaths = @(
+        (Join-Path $projectRoot "Intermediate"),
+        (Join-Path $projectRoot "Binaries")
+    )
+    foreach ($p in $cleanPaths) {
+        if (Test-Path $p) { Remove-Item $p -Recurse -Force }
+    }
+    
+    # Clean plugin binaries too
+    Get-ChildItem (Join-Path $projectRoot "Plugins") -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+        foreach ($sub in @("Binaries","Intermediate")) {
+            $subPath = Join-Path $_.FullName $sub
+            if (Test-Path $subPath) { Remove-Item $subPath -Recurse -Force }
+        }
+    }
+}
+
+# Strict rebuild: wipe the VibeUE plugin's build artifacts so every plugin file is
+# recompiled under the module's warnings-as-errors setting (catches newly-deprecated APIs).
+if ($StrictRebuild -and -not $Clean) {
+    Write-Host "Strict rebuild: cleaning VibeUE plugin Binaries/Intermediate..." -ForegroundColor Yellow
+    foreach ($sub in @("Binaries","Intermediate")) {
+        $subPath = Join-Path $PSScriptRoot $sub
+        if (Test-Path $subPath) { Remove-Item $subPath -Recurse -Force }
+    }
+}
+
+# Build the project
+if (-not $SkipBuild) {
+    Write-Host "Building $projectName in $Mode mode (strict: warnings-as-errors via VibeUE.Build.cs)..." -ForegroundColor Yellow
+    
+    & $buildBat "${projectName}Editor" Win64 $Mode $projectPath -waitmutex
+    
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Build failed! Exit code: $LASTEXITCODE" -ForegroundColor Red
+        exit 1
+    }
+    
+    Write-Host "Build completed successfully!" -ForegroundColor Green
+} else {
+    Write-Host "Skipping build..." -ForegroundColor Yellow
+}
+
+# Clear logs folder (relative to project root)
+Write-Host "Clearing all files in logs folder..." -ForegroundColor Yellow
+$logsPath = Join-Path $projectRoot "Saved\Logs"
+if (Test-Path $logsPath) {
+    $logsCleared = (Get-ChildItem $logsPath -File -ErrorAction SilentlyContinue).Count
+    Get-ChildItem $logsPath -File -ErrorAction SilentlyContinue | ForEach-Object {
+        Remove-Item $_.FullName -Force -ErrorAction SilentlyContinue
+    }
+    if ($logsCleared -gt 0) {
+        Write-Host "Cleared $logsCleared file(s) from logs folder!" -ForegroundColor Green
+    } else {
+        Write-Host "No files found in logs folder." -ForegroundColor Gray
+    }
+} else {
+    Write-Host "Logs folder not found." -ForegroundColor Gray
+}
+
+# Clear agent conversation files (relative to project root)
+Write-Host "Clearing agent conversations..." -ForegroundColor Yellow
+$agentConversationsPath = Join-Path $projectRoot "Saved\Logs\AgentConversations"
+if (Test-Path $agentConversationsPath) {
+    $conversationsCleared = (Get-ChildItem $agentConversationsPath -File -ErrorAction SilentlyContinue).Count
+    Get-ChildItem $agentConversationsPath -File -ErrorAction SilentlyContinue | ForEach-Object {
+        Remove-Item $_.FullName -Force -ErrorAction SilentlyContinue
+    }
+    if ($conversationsCleared -gt 0) {
+        Write-Host "Cleared $conversationsCleared agent conversation file(s)!" -ForegroundColor Green
+    } else {
+        Write-Host "No agent conversation files found." -ForegroundColor Gray
+    }
+} else {
+    Write-Host "AgentConversations folder not found." -ForegroundColor Gray
+}
+
+# Launch Unreal Editor
+Write-Host "Launching Unreal Editor..." -ForegroundColor Yellow
+
+# The project path MUST be quoted: -ArgumentList passes the string to the child process
+# verbatim, so a path with a space (e.g. Documents\Unreal Projects, Unreal's default
+# location) arrives as two invalid arguments and the editor silently opens the last
+# project or the Project Browser instead (issue #532).
+$editorProcess = Start-Process -FilePath $editorExe -ArgumentList "`"$projectPath`"" -PassThru
+
+# Windows recycles process IDs, so an Editor that crashed without running OnPreExit can leave a signal
+# file whose name matches the PID we just got. VibeUE also clears it in RegisterToolsets(), but that runs
+# late in startup - an agent watching from now would see the stale file first and call MCP too early.
+# The Editor takes tens of seconds to reach RegisterToolsets(), so deleting here cannot race its write.
+$signalsDir = Join-Path $projectRoot "Saved\VibeUE\Signals"
+if (Test-Path $signalsDir) {
+    Get-ChildItem -Path $signalsDir -Filter "editor-$($editorProcess.Id)-*.json*" -File -ErrorAction SilentlyContinue |
+        ForEach-Object {
+            Remove-Item $_.FullName -Force -ErrorAction SilentlyContinue
+            Write-Host "Cleared stale readiness signal: $($_.Name)" -ForegroundColor Gray
+        }
+}
+
+Write-Output "Editor-PID=$($editorProcess.Id)"
+
+if ($WaitForReady) {
+    $readySignal = Join-Path $signalsDir "editor-$($editorProcess.Id)-true.json"
+    Write-Host "Waiting for editor readiness signal (timeout: ${ReadyTimeoutSec}s)..." -ForegroundColor Yellow
+    $waited = 0
+    while (-not (Test-Path $readySignal)) {
+        if ($editorProcess.HasExited) {
+            Write-Host "Editor process exited (code $($editorProcess.ExitCode)) before signaling ready." -ForegroundColor Red
+            exit 3
+        }
+        if ($waited -ge $ReadyTimeoutSec) {
+            Write-Host "Editor did not signal ready within ${ReadyTimeoutSec}s (it may still be loading)." -ForegroundColor Red
+            exit 2
+        }
+        Start-Sleep 1
+        $waited++
+    }
+    Write-Host "Editor is ready (signaled after ${waited}s)." -ForegroundColor Green
+}
+
+Write-Host "=== Launch Complete ===" -ForegroundColor Green
+Write-Host "Unreal Editor is starting with $projectName" -ForegroundColor Green
+Write-Host "No debugger attached - MCP tools should work without breakpoints!" -ForegroundColor Green

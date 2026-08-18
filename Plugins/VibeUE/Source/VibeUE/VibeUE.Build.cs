@@ -1,0 +1,168 @@
+// Copyright Buckley Builds LLC 2026 All Rights Reserved.
+
+using System.IO;
+using UnrealBuildTool;
+
+public class VibeUE : ModuleRules
+{
+	public VibeUE(ReadOnlyTargetRules Target) : base(Target)
+	{
+		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
+		// Disable IWYU for better cross-environment compatibility (fix for GitHub issue #7)
+		IWYUSupport = IWYUSupport.None;
+		// Disable unity builds to ensure each file compiles independently
+		bUseUnity = false;
+		// Treat warnings as errors for THIS module only (adds /WX for our .cpp files,
+		// not the host project or other plugins). This promotes deprecation warnings
+		// such as C4996 to hard errors so UE-version-compat issues (e.g. deprecated
+		// engine APIs) fail the build here instead of surfacing only on contributors'
+		// clean installs. See PR #438.
+		bWarningsAsErrors = true;
+
+		// FabService (issue #517) talks to fab.com via the signed-in Epic account's EOS auth token,
+		// reusing the login the editor/launcher already holds. EOSSDK provides the SDK headers and the
+		// WITH_EOS_SDK=1 define; EOSShared provides IEOSSDKManager. bRequiresPlatformSDK mirrors the
+		// engine Fab plugin's own Build.cs so the platform SDK is available.
+		//
+		// Some engine installs ship without the Fab plugin entirely (issue #525), so all of this is
+		// conditional on it existing: without it, WITH_VIBEUE_FAB=0 compiles FabService down to stubs
+		// that report the feature as unavailable, and the rest of VibeUE builds normally.
+		bool bFabPluginPresent = File.Exists(
+			Path.Combine(EngineDirectory, "Plugins", "Fab", "Fab.uplugin"));
+		PrivateDefinitions.Add("WITH_VIBEUE_FAB=" + (bFabPluginPresent ? "1" : "0"));
+		if (bFabPluginPresent)
+		{
+			bRequiresPlatformSDK = true;
+			PrivateDependencyModuleNames.AddRange(
+				new string[]
+				{
+					"EOSSDK",                 // FabService (#517): Epic Online Services SDK — headers + WITH_EOS_SDK=1 for Fab auth token
+					"EOSShared",              // FabService (#517): IEOSSDKManager (create/enumerate + auto-tick EOS platforms)
+					"Fab",                    // FabService (#517): reuse the engine Fab plugin's FAB_API downloader (FFabDownloadRequest / queue)
+					"FileUtilities",          // FabService: safely extract public free-asset ZIP downloads
+				}
+			);
+		}
+
+		// Ensure proper debug symbol generation for PDB files
+		if (Target.Configuration == UnrealTargetConfiguration.Debug || 
+		    Target.Configuration == UnrealTargetConfiguration.DebugGame ||
+		    Target.Configuration == UnrealTargetConfiguration.Development)
+		{
+			OptimizeCode = CodeOptimization.Never; // Ensure no optimization interferes with debugging
+		}
+
+		PublicIncludePaths.AddRange(
+			new string[] {
+				// ... add public include paths required here ...
+			}
+		);
+		
+		PrivateIncludePaths.AddRange(
+			new string[] {
+				// ... add other private include paths required here ...
+			}
+		);
+		
+		PublicDependencyModuleNames.AddRange(
+			new string[]
+			{
+				"Core",
+				"CoreUObject",
+				"Engine",
+				"InputCore",
+				"HTTP",                 // For DeepResearch / web tools
+				"Json",
+				"JsonUtilities",
+				"DeveloperSettings",
+				"ApplicationCore"       // For FPlatformApplicationMisc (clipboard, etc.)
+			}
+		);
+
+		PrivateDependencyModuleNames.AddRange(
+			new string[]
+			{
+				"UnrealEd",
+				"EditorScriptingUtilities",
+				"EditorSubsystem",
+				"PythonScriptPlugin",   // For Python code execution
+				"Slate",
+				"SlateCore",
+				"UMG",
+				"Kismet",
+				"KismetCompiler",
+				"BlueprintGraph",
+				"Projects",
+				"AssetRegistry",
+				"MessageLog",
+				"MovieScene",
+				"MovieSceneTracks",
+				"RenderCore",
+				"RHI",                    // For GMaxRHIShaderPlatform / GShaderPlatformForFeatureLevel (material diagnostics)
+				"EditorStyle",
+				"AssetTools",
+				"PropertyEditor",         // For property reflection
+				"EnhancedInput",          // For Enhanced Input System support
+				"InputCore",              // For input types
+				"ImageWrapper",           // For image encoding/decoding
+				"DesktopPlatform",        // For file dialogs
+				"Niagara",                // For Niagara VFX runtime classes
+				"NiagaraEditor",          // For Niagara editor utilities and factories
+				"AnimGraph",              // For AnimGraphNode types (state machines, states)
+				"AnimGraphRuntime",       // For animation runtime types
+				"Persona",                // For IAnimationBlueprintEditor interface
+				"SkeletalMeshModifiers",  // For SkeletonModifier (bone manipulation) - MeshModelingToolset plugin
+				"SkeletalMeshEditor",     // For SkeletalMeshEditorSubsystem
+				"InputBlueprintNodes",    // For UK2Node_EnhancedInputAction (Enhanced Input event nodes)
+				"Landscape",              // For ALandscape, ULandscapeInfo, ULandscapeComponent
+				"LandscapeEditor",        // For landscape editor factories and utilities
+				"Foliage",                // Required by LandscapeEdit.h (InstancedFoliageActor)
+				"ModelViewViewModel",     // For MVVM ViewModel base classes (UMVVMViewModelBase)
+				"ModelViewViewModelBlueprint", // For MVVM Blueprint View and bindings
+				"StateTreeModule",        // For UStateTree, UStateTreeEditorData, StateTree core types
+				"StateTreeEditorModule",  // For FStateTreeCompiler, UStateTreeState, StateTree editor types
+				"PropertyBindingUtils",    // For FPropertyBindingBindableStructDescriptor (base of FStateTreeBindableStructDesc)
+				"GameplayTags",           // For FGameplayTag (required by StateTree)
+				"AudioEditor",            // For SoundCue graph classes (USoundCueGraphNode, USoundCueGraph, USoundCueFactoryNew)
+				"MetasoundEngine",        // For UMetaSoundSource, UMetaSoundBuilderSubsystem, UMetaSoundSourceBuilder
+				"MetasoundFrontend",      // For FMetaSoundFrontendDocumentBuilder, FMetasoundFrontendClassName, ISearchEngine
+				"MetasoundGraphCore",     // For core MetaSound graph types
+				"MeshDescription",        // For FMeshDescription / TVertexInstanceAttributesRef (UV editing)
+				"StaticMeshDescription",  // For FStaticMeshAttributes / FStaticMeshOperations / FUVMapParameters
+				"ToolsetRegistry",        // UE 5.8 native AI toolset registry — exposes services as AICallable tools on Epic's MCP endpoint
+				"ModelContextProtocol",   // UE 5.8 native MCP server — VibeUE's dynamic tools are bridged onto Epic's endpoint
+				"AIModule",               // UBehaviorTree, UBlackboardData, UBTNode, blackboard key types
+				"GameplayTasks",          // AIModule dependency
+			}
+		);
+
+		if (Target.bBuildEditor == true)
+		{
+			PrivateDependencyModuleNames.AddRange(
+				new string[]
+				{
+					"PropertyEditor",      // For widget property editing
+					"ToolMenus",           // For editor UI
+					"BlueprintEditorLibrary", // For Blueprint utilities
+					"UMGEditor",           // For WidgetBlueprint.h and other UMG editor functionality
+					"MaterialEditor",      // For material editor integration
+					"LevelEditor",         // For global keyboard shortcuts
+					"StatusBar",           // For panel drawer integration
+					"ContentBrowser",      // For content browser selection queries
+					"MetasoundEditor",     // For UMetaSoundEditorSubsystem (FindOrBeginBuilding, BuildToAsset)
+					"AIGraph",             // UAIGraphNode, FGraphNodeClassHelper (BT node class discovery)
+					"BehaviorTreeEditor",  // UBehaviorTreeGraph / UBehaviorTreeGraphNode_* — the BT EdGraph write path
+				"GameplayTagsEditor",  // For IGameplayTagsEditorModule (add/remove/rename tags at editor time)
+				"TraceServices",       // For ITraceServicesModule / IAnalysisService (editor_control analyse action)
+				}
+			);
+		}
+		
+		DynamicallyLoadedModuleNames.AddRange(
+			new string[]
+			{
+				// ... add any modules that your module loads dynamically here ...
+			}
+		);
+	}
+}

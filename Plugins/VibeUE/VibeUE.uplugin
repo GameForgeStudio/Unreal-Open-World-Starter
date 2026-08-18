@@ -1,0 +1,87 @@
+{
+	"FileVersion": 3,
+	"Version": 5,
+	"VersionName": "5.0",
+	"EngineVersion": "5.8.0",
+	"FriendlyName": "VibeUE",
+	"Description": "MCP Expansion and AI Editor Toolset for Unreal Engine 5.8 — extends Unreal's native MCP server, ToolsetRegistry, and AgentSkill systems with deep editor automation.",
+	"Category": "Editor",
+	"CreatedBy": "Kevin Buckley",
+	"CreatedByURL": "https://www.vibeue.com",
+	"DocsURL": "https://www.vibeue.com/docs",
+	"MarketplaceURL": "",
+	"FabURL": "com.epicgames.launcher://ue/Fab/product/5ef22486-1aa5-459c-8e12-21c3290fe3cc",
+	"SupportURL": "https://www.vibeue.com/support",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "VibeUE",
+			"Type": "Editor",
+			"LoadingPhase": "Default",
+			"WhitelistPlatforms": [
+				"Win64",
+				"Linux",
+				"Mac"
+			]
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "PythonScriptPlugin",
+			"Enabled": true
+		},
+		{
+			"Name": "EditorScriptingUtilities",
+			"Enabled": true
+		},
+		{
+			"Name": "EnhancedInput",
+			"Enabled": true
+		},
+		{
+			"Name": "Niagara",
+			"Enabled": true
+		},
+		{
+			"Name": "MeshModelingToolset",
+			"Enabled": true
+		},
+		{
+			"Name": "ModelViewViewModel",
+			"Enabled": true
+		},
+		{
+			"Name": "StateTree",
+			"Enabled": true
+		},
+		{
+			"Name": "MetaSound",
+			"Enabled": true
+		},
+		{
+			"Name": "GameplayTagsEditor",
+			"Enabled": true
+		},
+		{
+			"Name": "ToolsetRegistry",
+			"Enabled": true
+		},
+		{
+			"Name": "ModelContextProtocol",
+			"Enabled": true
+		},
+		{
+			"Name": "Fab",
+			"Enabled": true,
+			"Optional": true
+		},
+		{
+			"Name": "EOSShared",
+			"Enabled": true,
+			"Optional": true
+		}
+	]
+}
