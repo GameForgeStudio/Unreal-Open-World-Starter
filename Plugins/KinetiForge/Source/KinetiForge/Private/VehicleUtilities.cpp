@@ -1,0 +1,132 @@
+// Copyright (c) 2026 Zhengyi Miao (github.com/myoozy)
+
+#include "VehicleUtilities.h"
+#include "DrawDebugHelpers.h"
+#include "Engine/World.h"
+#include "Physics/PhysicsInterfaceCore.h"
+
+UVehicleUtilities::UVehicleUtilities()
+{
+}
+
+UVehicleUtilities::~UVehicleUtilities()
+{
+}
+
+void UVehicleUtilities::SetInertiaTensor(UPrimitiveComponent* InComponent, FVector InInertia)
+{
+	if (!IsValid(InComponent)) return;
+	FBodyInstance* BI = InComponent->GetBodyInstance();
+	if (!BI || !BI->IsValidBodyInstance()) return;
+
+	if (!FPhysicsInterface::IsValid(BI->ActorHandle) || !FPhysicsInterface::IsRigidBody(BI->ActorHandle))
+	{
+		// actor is not created, maybe try again later
+		return;
+	}
+
+
+	// cm^2 to m^2
+	InInertia *= 10000;
+
+	// input check
+	if (InInertia.X <= 0.f || InInertia.Y <= 0.f || InInertia.Z <= 0.f)
+	{
+		FVector OriginalInertia = BI->GetBodyInertiaTensor();
+		if (InInertia.X <= 0)InInertia.X = OriginalInertia.X;
+		if (InInertia.Y <= 0)InInertia.Y = OriginalInertia.X;
+		if (InInertia.Z <= 0)InInertia.Z = OriginalInertia.X;
+	}
+
+	// setup in physical callback
+	FPhysicsCommand::ExecuteWrite(BI->ActorHandle, [&](FPhysicsActorHandle& Actor)
+		{
+			FPhysicsInterface::SetMassSpaceInertiaTensor_AssumesLocked(Actor, InInertia);
+		});
+}
+
+void UVehicleUtilities::RotateCamera(USceneComponent* InSpringArm, FVector2D InMouseInput, bool bInvertYAxis, float InMaxPitch)
+{
+	if (IsValid(InSpringArm))
+	{
+		FRotator Rot = InSpringArm->GetRelativeRotation();
+		FRotator NewRot;
+
+		NewRot.Roll = 0;
+		NewRot.Pitch = FMath::Clamp(Rot.Pitch + InMouseInput.Y, -InMaxPitch, InMaxPitch);
+		NewRot.Yaw = Rot.Yaw + InMouseInput.X;
+
+		InSpringArm->SetRelativeRotation(NewRot);
+	}
+}
+
+void UVehicleUtilities::CameraLookAtVelocity(UPrimitiveComponent* InPrimitiveComponent, USceneComponent* InSpringArm, float InPitch, float InSensitivity, float InInterpSpeed, float InStartSpeed_mps)
+{
+	if (IsValid(InSpringArm) && IsValid(InPrimitiveComponent))
+	{
+		FRotator CurrentCamRot = InSpringArm->GetRelativeRotation();
+
+		FVector WorldVelocity = InPrimitiveComponent->GetPhysicsLinearVelocity();
+		FVector LocalVelocity = InPrimitiveComponent->GetComponentTransform().InverseTransformVector(WorldVelocity);
+
+		FVector ScaledLinearVelocity = LocalVelocity;
+		ScaledLinearVelocity.Y *= InSensitivity;
+
+		FRotator TargetRotator = FRotationMatrix::MakeFromX(ScaledLinearVelocity).Rotator();
+		TargetRotator.Pitch = InPitch;
+
+		FRotator NewRot = FMath::RInterpTo(
+			CurrentCamRot, 
+			TargetRotator, 
+			InPrimitiveComponent->GetWorld()->DeltaTimeSeconds, 
+			InInterpSpeed
+		);
+		NewRot.Roll = 0;
+
+		InSpringArm->SetRelativeRotation(NewRot);
+	}
+}
+
+UPrimitiveComponent* UVehicleUtilities::FindPhysicalParent(USceneComponent* ChildSceneComponent)
+{
+	if (!IsValid(ChildSceneComponent))return nullptr;
+
+	TArray<USceneComponent*> AllParentComponents;
+	ChildSceneComponent->GetParentComponents(AllParentComponents);
+
+	// search for all possible components
+	for (USceneComponent* SceneComp : AllParentComponents)
+	{
+		if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(SceneComp))
+		{
+			return Primitive;
+		}
+	}
+
+	// Fallback: try to find root component (usually primitive)
+	if (AActor* CompOwner = ChildSceneComponent->GetOwner())
+	{
+		if (UPrimitiveComponent* RootPrimitive = Cast<UPrimitiveComponent>(CompOwner->GetRootComponent()))
+		{
+			return RootPrimitive;
+		}
+	}
+
+	return nullptr;
+}
+
+void UVehicleUtilities::DrawDebugCapsuleEasy(
+	UWorld* World, FVector Start, FVector End, float Radius, 
+	float Thickness, float LifeTime, FColor Color)
+{
+	if (!IsValid(World))return;
+
+	FVector Center = (Start + End) * 0.5f;
+	float HalfHeight = FVector::Dist(Start, End) * 0.5f + Radius;
+	FQuat Rotation = FQuat::FindBetween(FVector::UpVector, End - Start).GetNormalized();
+
+	DrawDebugCapsule(
+		World, Center, HalfHeight, Radius, Rotation,
+		Color, false, LifeTime, 0, Thickness
+	);
+}

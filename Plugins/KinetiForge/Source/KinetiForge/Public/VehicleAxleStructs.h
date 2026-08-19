@@ -1,0 +1,210 @@
+// Copyright (c) 2026 Zhengyi Miao (github.com/myoozy)
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "VehicleAxleStructs.generated.h"
+
+UENUM(BlueprintType)
+enum class EVehicleAxleLayout : uint8
+{
+	TwoWheels,
+	SingleLeft,
+	SingleRight
+};
+
+UENUM(BlueprintType)
+enum class EVehicleAxleSuspensionType : uint8
+{
+	Independent,
+	Solid
+};
+
+UENUM(BlueprintType)
+enum class EVehicleSolidAxleAnimPivot : uint8
+{
+	Center,
+	Left,
+	Right
+};
+
+USTRUCT(BlueprintType, Blueprintable)
+struct FVehicleAxleConfig
+{
+	GENERATED_BODY()
+
+	/*Unit: kg*m^2*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AxleSetup", meta = (ClampMin = "0.0"))
+	float DriveShaftInertia = 0.1;
+	/*Unit: Nm/Rad*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AxleSetup", meta = (ClampMin = "0.0"))
+	float DriveShaftTorsionalStiffness = 5000.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AxleSetup", meta = (ClampMin = "0.0"))
+	float TrackWidth = 160.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AxleSetup", meta = (ClampMin = "0.0", ToolTip = "Raw weight before normalization, can be negative. Used to assign torque proportionally."))
+	float TorqueWeight = 1.f;	// Raw weight before normalization, can be negative. Used to assign torque proportionally.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AxleSetup", meta = (ClampMin = "0.0"))
+	float SwaybarStiffness = 200.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AxleSetup", meta = (ClampMin = "0.0"))
+	float MaxBrakeTorque = 2500.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AxleSetup")
+	bool bAffectedByHandbrake = true;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AxleSetup", meta = (ClampMin = "0.0"))
+	float MaxHandbrakeTorque = 2500.f;
+};
+
+USTRUCT(BlueprintType, Blueprintable)
+struct FVehicleAxleSteeringConfig
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SteeringSetup")
+	bool bAffectedBySteering = true;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SteeringSetup")
+	float MaxSteeringAngle = 35.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SteeringSetup")
+	bool bAckermannSteering = true;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SteeringSetup")
+	float AckermannRatio = 1.f;
+};
+
+USTRUCT(BlueprintType, Blueprintable)
+struct FVehicleSteeringAssistConfig
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SteeringSetup", meta = (ToolTip = "reduce steering angle when understeering or oversteering"))
+	bool bSteeringAssistEnabled = true;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SteeringSetup", meta = (ClampMin = "0.0"))
+	float Level = 0.5f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SteeringSetup", meta = (ClampMin = "0.0", ToolTip = "Maximum steering speed of steering assist. If MaxSteerRate <= 0, it will teleport steering."))
+	float MaxSteerRate = 30.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SteeringSetup", meta = (ClampMin = "0.0", ToolTip = "minimum speed(m / s) to activate assist"))
+	float ActivationSpeed = 0.5f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SteeringSetup", meta = (ClampMin = "0.0", ToolTip = "minimum angle(degrees) to activate assist"))
+	float ActivationAngle = 1.f;
+};
+
+USTRUCT(BlueprintType, Blueprintable)
+struct FVehicleTCSConfig
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TCSSetup")
+	bool bTractionControlSystemEnabled = true;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TCSSetup", meta = (ClampMin = "0.0"))
+	float OptimalSlip = 0.2f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TCSSetup", meta = (ClampMin = "0.0", ToolTip = "minimum speed(m / s) to activate assist"))
+	float ActivationSpeed = 1.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TCSSetup", meta = (ClampMin = "0.0"))
+	float Sensitivity = 5.f;
+};
+
+
+USTRUCT(BlueprintType, Blueprintable)
+struct FVehicleAxleSimState
+{
+	GENERATED_BODY()
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
+	int32 NumOfWheels = 2;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
+	int32 NumOfWheelOnGround = 2;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
+	float LeftWheelSteeringAngle = 0.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
+	float RightWheelSteeringAngle = 0.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Force")
+	float AxleDriveTorque = 0.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Force")
+	float LeftDriveTorque = 0.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Force")
+	float RightDriveTorque = 0.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
+	float ReflectedInertiaOnWheel = 0.f;	//on single wheel
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Force")
+	float BrakeTorque = 0.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Force")
+	float HandbrakeTorque = 0.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Input")
+	float SteeringAssistInput = 0.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Input")
+	float RealSteeringValue = 0.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
+	float AxleEffectiveInertia = 0.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
+	float AxleAngularVelocity = 0.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Force")
+	float P3MotorTorque = 0.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
+	float WheelBase = 0.1;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
+	FVector3f WorldLinearVelocity = FVector3f(0.f);
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
+	FVector3f LocalLinearVelocity = FVector3f(0.f);
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "TractionControl")
+	bool bTCSTriggered = false;
+};
+
+class UVehicleDifferentialComponent;
+class UVehicleAxleAssemblyComponent;
+class UVehicleWheelComponent;
+/**
+* This is config for each axle under the DriveAssemblyComponent.
+*/
+USTRUCT(BlueprintType)
+struct KINETIFORGE_API FVehicleAxleSpawnTemplate
+{
+	GENERATED_USTRUCT_BODY()
+
+	/**
+	* Decide whether to use an existing AxleAssemblyComponent.
+	*
+	* If using existing manually created AxleAssemblyComponent,
+	* the level sequence correctly recognize and record its animations.
+	*
+	* Otherwise the level sequence will not record it.
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Axle")
+	bool bUseExistingComponent = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Axle", meta = (GetOptions = "GetNamesOfAxlesOfOwner", EditCondition = "bUseExistingComponent", EditConditionHides))
+	FName AxleComponentName = FName();
+
+	/**
+	* Axle will be automatically generated from this subclass.
+	* If the value is empty, a default axle will be generated.
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Axle", meta = (EditCondition = "!bUseExistingComponent", EditConditionHides))
+	TSubclassOf<UVehicleAxleAssemblyComponent> AxleClass = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Axle", meta = (EditCondition = "!bUseExistingComponent", EditConditionHides))
+	FVector AxlePosition = FVector(0.f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Axle", meta = (EditCondition = "!bUseExistingComponent", EditConditionHides))
+	bool bDiasbleSteering = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Axle", meta = (EditCondition = "!bUseExistingComponent", EditConditionHides))
+	bool bDisableHandbrake = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Axle", meta = (EditCondition = "!bUseExistingComponent", EditConditionHides))
+	bool bDisableTractionControl = false;
+
+	/*
+	* /if < 0, won't override
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Axle", meta = (EditCondition = "!bUseExistingComponent", EditConditionHides))
+	float TorqueWeightOverride = -1.0f;
+
+	/*
+	* /if < 0, won't override
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Axle", meta = (EditCondition = "!bUseExistingComponent", EditConditionHides))
+	float TrackWidthOverride = -1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Axle", meta = (EditCondition = "!bUseExistingComponent", EditConditionHides))
+	TSubclassOf<UVehicleWheelComponent> WheelClassOverride = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Axle", meta = (EditCondition = "!bUseExistingComponent", EditConditionHides))
+	TSubclassOf<UVehicleDifferentialComponent> DifferentialClassOverride = nullptr;
+};

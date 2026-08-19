@@ -1,0 +1,430 @@
+// Copyright (c) 2026 Zhengyi Miao (github.com/myoozy)
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Curves/CurveFloat.h"
+#include "VehicleDrivetrainStructs.generated.h"
+
+/*****************************ENGINE******************************/
+
+UENUM(BlueprintType)
+enum class EVehicleEngineOperationMode : uint8
+{
+	On  UMETA(DisplayName = "EngineON"),
+	Off UMETA(DisplayName = "EngineOFF"),
+	Starting    UMETA(DisplayName = "EngineSTARTING"),
+	Shutting    UMETA(DisplayName = "EngineSHUTTING")
+};
+
+USTRUCT(BlueprintType, Blueprintable)
+struct KINETIFORGE_API FVehicleNaturallyAspiratedEngineConfig
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EngineSetup", meta = (ClampMin = "0.0"))
+	float MaxEngineTorque = 400.f;
+
+	/**
+	* normalized engine torque curve
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EngineSetup", meta = (ClampMin = "0.0"))
+	UCurveFloat* EngineTorqueCurve = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EngineSetup", meta = (ClampMin = "0.0"))
+	float EngineIdleRPM = 900.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EngineSetup", meta = (ClampMin = "0.0"))
+	float EngineMaxRPM = 6000.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EngineSetup", meta = (ClampMin = "0.0"))
+	float EngineInertia = 0.2f;
+
+	/**
+	* The internal friction of the engine at 0 rpm
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EngineSetup", meta = (ClampMin = "0.0"))
+	float StartFriction = 50.f;
+
+	/**
+	* The Slope (Tangent) of the internal friction of engine
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EngineSetup", meta = (ClampMin = "0.0"))
+	float FrictionCoefficient = 0.005f;
+
+	/**
+	* The Slope (Tangent) of the friction of engine caused by pumping
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EngineSetup", meta = (ClampMin = "0.0"))
+	float PumpingLossCoefficient = 0.005f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EngineSetup", meta = (ClampMin = "0.0", AdvancedDisplay))
+	float IdleThrottleInterpSpeed = 1.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EngineSetup", meta = (ClampMin = "0.0", AdvancedDisplay))
+	float RevLimiterTime = 0.05f;
+
+	/**
+	* If Lambda < 1.f, there will be unburnt fuel, which will cause back fireing
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EngineSetup", meta = (ClampMin = "0.0", AdvancedDisplay))
+	float MaxPowerLambda = 0.85f;
+
+	/**
+	* If Lambda < 1.f, there will be unburnt fuel, which will cause back fireing
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EngineSetup", meta = (ClampMin = "0.0", AdvancedDisplay))
+	float DeceleratingLambda = 0.9f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EngineSetup", meta = (ClampMin = "0.0", AdvancedDisplay))
+	float UnburntFuelAccumulationRate = 2.f;
+};
+
+USTRUCT(BlueprintType, Blueprintable)
+struct KINETIFORGE_API FVehicleEngineTurboConfig
+{
+	GENERATED_USTRUCT_BODY()
+
+	/**
+	* if max boost pressure > 0, will be considered as turbo charged
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TurboSetup", meta = (ClampMin = "0.0"))
+	float MaxBoostPressure = 0.f;
+
+	/**
+	* Minimum pressure (vacuum, restriction from the intake) when throttle input is really small(but above 0).
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TurboSetup", meta = (ClampMin = "-1.0", ClampMax = "0.0"))
+	float StaticIntakeRestriction = -0.2f;
+
+	/**
+	* The engine RPM at which the turbo starts to generate positive pressure (spool up).
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TurboSetup", meta = (ClampMin = "0.0"))
+	float SpoolStartRPM = 1200.f;
+
+	/**
+	* The engine RPM at which the turbo reaches maximum pressure.
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TurboSetup", meta = (ClampMin = "0.0"))
+	float FullBoostRPM = 3500.f;
+
+	/**
+	* Time in seconds to reach ~95% max boost.
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TurboSetup", meta = (ClampMin = "0.0"))
+	float SpoolUpDuration = 0.5f;
+
+	/**
+	* Time in seconds to loose pressure when throttle is closed(BOV open).
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TurboSetup", meta = (ClampMin = "0.0"))
+	float PressureDecayDuration = 0.2f;
+
+	/**
+	* Determines how effectively boost pressure converts to torque.
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TurboSetup", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float BoostEfficiency = 0.7f;
+
+	/**
+	* Enables Anti-Lag System (bang-bang) to keep turbo spooled off-throttle.
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TurboSetup")
+	bool bEnableAntiLag = false;
+
+	/**
+	* minimum rpm to trigger anti-lag system
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TurboSetup", meta = (ClampMin = "0.0"))
+	float AntiLagMinRPM = 2000.f;
+
+	/**
+	* When antilag is activated, attempt to maintain a proportion of the maximum boost value. 
+	* e.g. MaxBoostPressure = 1.0bar, AntiLagTargetPressureRatio = 0.8, then anti-lag system will keep the target pressure at 0.8bar.
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TurboSetup", meta = (ClampMin = "0.0"))
+	float AntiLagTargetPressureRatio = 0.9f;
+};
+
+USTRUCT(BlueprintType, Blueprintable)
+struct KINETIFORGE_API FVehicleEngineExhaustConfig
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ExhaustSetup", meta = (ClampMin = "0.0", AdvancedDisplay))
+	float ExhaustScavengingStrength = 2.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ExhaustSetup", meta = (ClampMin = "0.0", AdvancedDisplay))
+	float HeatUpRate = 0.5f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ExhaustSetup", meta = (ClampMin = "0.0", AdvancedDisplay))
+	float CoolDownRate = 0.2f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ExhaustSetup", meta = (ClampMin = "0.0", ClampMax = "1.0", AdvancedDisplay))
+	float FlashPoint = 0.5f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ExhaustSetup", meta = (ClampMin = "0.0", ClampMax = "1.0", AdvancedDisplay))
+	float IgnitionProbability = 0.1f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ExhaustSetup", meta = (ClampMin = "0.0", AdvancedDisplay))
+	float PopFuelThreshold = 0.2f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ExhaustSetup", meta = (ClampMin = "0.0", AdvancedDisplay))
+	float FlameFuelThreshold = 0.25f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ExhaustSetup", meta = (ClampMin = "0.0", AdvancedDisplay))
+	float BackfireHeatSpike = 0.15f;
+};
+
+USTRUCT(BlueprintType, Blueprintable)
+struct KINETIFORGE_API FVehicleEngineSimState
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+	EVehicleEngineOperationMode OperationMode = EVehicleEngineOperationMode::Starting;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Fuel")
+	bool bSpark = false;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Fuel")
+	bool bFuelInjection = false;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
+	float EngineAngularVelocity = 0.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Input")
+	float RawThrottleInput = 0.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Input")
+	float IdleThrottle = 0.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Input")
+	float RealThrottle = 0.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Force")
+	float EffectiveTorque = 0.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Force")
+	float LoadTorque = 0.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Force")
+	float TorqueRequiredToStartEngine = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Force")
+	float StarterMotorTorque = 0.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
+	float EngineRPM = 0.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
+	float EngineOffRPM = 0.f;	//under this rpm, the engine will be considered as off
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Fuel")
+	float UnburntFuelBuffer = 0.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Turbo")
+	float TurboSpool = 0.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Turbo")
+	float TurboPressure = 0.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Exhaust")
+	float ExhaustHeat = 0.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Exhaust")
+	float BackfireIntensity = 0.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
+	float RevLimiterTimer = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Force")
+	float P1MotorTorque = 0.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Turbo")
+	bool bIsTurboBlowingOff = false;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Turbo")
+	bool bIsAntiLagTriggered = false;
+};
+
+/*******************************CLUTCH********************************/
+
+
+UENUM(BlueprintType)
+enum class EClutchSimMode : uint8
+{
+	/**
+	 * Simulates a friction clutch with torsional compliance.
+	 * The clutch stiffness is combined in series with the reflected
+	 * stiffness of the downstream driveline.
+	 */
+	FrictionClutch UMETA(DisplayName = "Friction Clutch"),
+
+	/**
+	 * Simulates a fluid coupling / torque converter as a viscous damper.
+	 * No torsional spring state is accumulated.
+	 */
+	FluidCoupling UMETA(DisplayName = "Fluid Coupling"),
+
+	/**
+	 * Uses impulse analysis to calculate the torque required to reduce
+	 * the relative angular velocity within the current physics step.
+	 */
+	ConstraintLock UMETA(DisplayName = "Constraint Lock")
+};
+
+USTRUCT(BlueprintType)
+struct KINETIFORGE_API FVehicleClutchConfig
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ClutchSetup")
+	EClutchSimMode SimMode = EClutchSimMode::FrictionClutch;
+
+	/**
+	 * Torsional stiffness of the clutch/crank/input-side elastic path.
+	 * Used by FrictionClutch.
+	 * Unit: Nm/Rad
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ClutchSetup",
+		meta = (ClampMin = "0.0", EditCondition = "SimMode == EClutchSimMode::FrictionClutch", EditConditionHides))
+	float TorsionalStiffness = 10000.f;
+
+	/**
+	 * Damping ratio of the equivalent torsional spring mode.
+	 * Used by FrictionClutch.
+	 * 0 = no damping, 1 = critical damping.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ClutchSetup",
+		meta = (ClampMin = "0.0", ClampMax = "1.0", EditCondition = "SimMode == EClutchSimMode::FrictionClutch", EditConditionHides))
+	float DampingRatio = 0.1f;
+
+	/**
+	 * Viscous damping coefficient of the fluid coupling.
+	 * Used by FluidCoupling.
+	 * Unit: Nm*s/Rad
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ClutchSetup",
+		meta = (ClampMin = "0.0", EditCondition = "SimMode == EClutchSimMode::FluidCoupling", EditConditionHides))
+	float ViscousDamping = 100.f;
+
+	/**
+	 * Maximum transmissible clutch torque multiplier.
+	 *
+	 * Real capacity:
+	 * Capacity * MaxEngineTorque, including boost multiplier.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ClutchSetup", meta = (ClampMin = "0.0"))
+	float Capacity = 1.5f;
+};
+
+USTRUCT(BlueprintType)
+struct KINETIFORGE_API FVehicleClutchSimState
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
+	float AngleDiff = 0.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
+	float ClutchLock = 0.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Force")
+	float MaxClutchTorque = 0.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Force")
+	float ClutchTorque = 0.f;
+};
+
+/*******************************GEARBOX********************************/
+
+
+USTRUCT(BlueprintType)
+struct KINETIFORGE_API FVehicleGearboxConfig
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup", meta = (ClampMin = "0.0"))
+	float ShiftDelay = 0.2;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup", meta = (ClampMin = "0.0"))
+	float FirstGear = 3.636;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup", meta = (ClampMin = "0.0"))
+	float TopGear = 0.842;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float GearRatioBias = 0.5;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup", meta = (ClampMin = "1.0"))
+	int32 NumberOfGears = 6;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup", meta = (ClampMin = "1.0", ToolTip = ""))
+	int32 NumOfReverseGears = 1;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float Efficiency = 0.9;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup")
+	bool bSequentialGearbox = false;
+};
+
+USTRUCT(BlueprintType)
+struct KINETIFORGE_API FAutoGearboxConfig
+{
+	GENERATED_USTRUCT_BODY()
+
+	/*
+	* This simulates the logic of a real automatic gearbox depending on the vehicle speed and the throttle/brake input. 
+	* This is actually more like a AMT gearbox.
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drivetrain")
+	bool bAutomaticGearbox = true;
+
+	/*
+	* this helps shifting from D to R / R to D / N to D / D to N / N to R / R to N 
+	* (automatic gearboxes in reallife will never do this)
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drivetrain")
+	bool bArcadeAutoGearbox = true;
+
+	/*
+	* if true, the arcade gearbox will be updated without any delay. 
+	* eg. shift from D to N immediately, then in the next frame, shift to D again immediately.
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drivetrain")
+	bool bArcadeShiftInstant = false;
+
+	/*
+	* if using sport mode, the auto gearbox will shift up as late as possible and shift down as quick as possible. 
+	* Also, automatic rev-matching."
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drivetrain")
+	bool bSportMode = false;
+
+	/*
+	* this roughly decides the refershrate of the auto gearbox. 
+	* eg. if AutoGearboxRefreshTime = 0.5 seconds, the auto gearbox will be refreshed 2 times per second.
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drivetrain")
+	float AutomaticGearboxRefreshTime = 0.5;
+
+	/*
+	* this roughly decides how long the auto gearbox needs to cool down after one shift.
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drivetrain")
+	float AutoShiftCoolDown = 1.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drivetrain")
+	int32 MaxUpShiftSteps = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drivetrain")
+	int32 MaxDownShiftSteps = 2;
+
+	/*
+	* At which RPM (normalized) the gearbox will shift up.
+	* This should be greater than DownShiftRPM.
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drivetrain", meta = (ClampMin = "0.0", ClampMax = "0.99"))
+	float UpShiftRPM = 0.95f;
+
+	/*
+	* At which RPM (normalized) the gearbox will shift down.
+	* This should be smaller than UpShiftRPM
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drivetrain", meta = (ClampMin = "0.0", ClampMax = "0.99"))
+	float DownShiftRPM = 0.9f;
+
+	/*
+	* This curve scales the UpShiftRPM.
+	* The input will be Max(Throttle, Brake).
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drivetrain", meta = (ToolTip = ""))
+	UCurveFloat* UpShiftRPMCurve = nullptr;
+
+	/*
+	* This curve scales the DownShiftRPM.
+	* The input will be Max(Throttle, Brake).
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drivetrain", meta = (ToolTip = ""))
+	UCurveFloat* DownShiftRPMCurve = nullptr;
+};
+
+/**************************DIFFERENTIAL*****************************/
+
+USTRUCT(BlueprintType)
+struct FVehicleLimitedSlipDifferentialConfig
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup", meta = (ClampMin = "0.0"))
+	float GearRatio = 3.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup", meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	float DriveLockRatio = 0.f;	//range: 0 - 1
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setup", meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	float CoastLockRatio = 0.f;	//range: 0 - 1
+};

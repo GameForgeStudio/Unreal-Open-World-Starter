@@ -1,0 +1,119 @@
+// Copyright (c) 2026 Zhengyi Miao (github.com/myoozy)
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Components/ActorComponent.h"
+#include "VehicleDrivetrainStructs.h"
+#include "VehicleGearboxComponent.generated.h"
+
+DECLARE_DYNAMIC_DELEGATE(FOnShiftFinishedDelegate);
+
+class UVehicleAxleAssemblyComponent;
+
+UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent), BlueprintType, Blueprintable)
+class KINETIFORGE_API UVehicleGearboxComponent : public UActorComponent
+{
+	GENERATED_BODY()
+
+public:	
+	// Sets default values for this component's properties
+	UVehicleGearboxComponent();
+
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Setup")
+	FVehicleGearboxConfig Config;
+
+protected:
+	// Called when the game starts
+	virtual void BeginPlay() override;
+
+	FOnShiftFinishedDelegate ShiftFinishedCallback;
+	FTimerHandle GearShiftTimerHandle;
+	TArray<float> GearRatios;
+	TArray<float> ReverseGearRatios;
+	float CurrentGearRatio;
+	float P2MotorTorque = 0.f;
+	int32 CurrentGear;
+	int32 TargetGear;
+	bool bIsInGear = true;
+	bool bShouldRevMatch = false;
+	bool bShouldCutSpark = false;
+
+	//cache
+	float CachedFirstGear = -1;
+	float CachedTopGear = -1;
+	float CachedGearRatioBias = -1;
+	int32 CachedNumGears = -1;
+	int32 CachedNumRGears = -1;
+
+	void StartShift(int32 InTargetGear, bool bImmediate = false);
+	void FinalizeShift();
+
+public:	
+	// Called every frame
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "VehicleGearbox")
+	const FVehicleGearboxConfig& GetConfig() { return Config; }
+
+	UFUNCTION(BlueprintCallable, Category = "VehicleGearbox")
+	void SetConfig(const FVehicleGearboxConfig& NewConfig) { Config = NewConfig; }
+
+	UFUNCTION(BlueprintCallable, Category = "VehicleGearbox")
+	void ShiftToTargetGear(int32 InTargetGear, bool bImmediate = false);
+
+	UFUNCTION(BlueprintCallable, Category = "VehicleGearbox")
+	void ShiftToTargetGearWithDelegate(FOnShiftFinishedDelegate InOnShiftFinished, int32 InTargetGear, bool bImmediate = false);
+
+	UFUNCTION(BlueprintCallable, Category = "VehicleGearbox")
+	void UpdateOutputShaft(
+		float InClutchTorque, 
+		float& OutTorque
+	);
+
+	UFUNCTION(BlueprintCallable, Category = "VehicleGearbox")
+	void UpdateInputShaft(
+		float InAxleVelocity,
+		float InAxleInertia,
+		float InDriveShaftStiffness,
+		float& OutClutchVelocity,
+		float& OutReflectedInertia,
+		float& OutReflectedDriveShaftStiffness,
+		float& OutCurrentGearRatio
+	);
+
+	UFUNCTION(BlueprintCallable, Category = "VehicleGearbox")
+	float GetGearRatio(int InTarget);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "VehicleGearbox")
+	int32 GetCurrentGear() { return CurrentGear; }
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "VehicleGearbox")
+	float GetCurrentGearRatio() { return CurrentGearRatio; }
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "VehicleGearbox")
+	bool GetIsInGear() { return bIsInGear; }
+
+	UFUNCTION(BlueprintCallable, Category = "VehicleGearbox")
+	void SetP2MotorTorque(float NewTorque) { P2MotorTorque = NewTorque; }
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "VehicleGearbox")
+	float GetP2MotorTorque() { return P2MotorTorque; }
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "VehicleGearbox")
+	void CalculateSpeedRangeOfEachGear(
+		float InEffectiveWheelRadius,
+		float InEngineIdleRPM,
+		float InEngineMaxRPM,
+		TArray<FVector2D>& OutSpeedRanges
+	);
+
+	UFUNCTION(BlueprintCallable, Category = "VehicleGearbox", meta = (ToolTip = "Calculate and update gear ratios"))
+	bool CalculateGearRatios();
+	bool CalculateGearRatios(TArray<float>& LargerArray, TArray<float>& SmallerArray, bool bInverseSign = false);
+
+	bool IsGearDataDirty();
+	bool GetShouldRevMatch() { return bShouldRevMatch; }
+	bool GetShouldCutSpark() { return bShouldCutSpark; }
+};

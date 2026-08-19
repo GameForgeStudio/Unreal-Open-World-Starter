@@ -7,16 +7,24 @@ An open-source Unreal Engine starter framework for the OWS Tactics project.
 ## Requirements
 
 - Your own licensed installation of Unreal Engine. Unreal Engine itself is not included in this repository.
-- Unreal Engine **5.8** is the supported starting version. Earlier versions may work, but are untested and have no official support as of today.
-- Any Marketplace/Fab dependencies listed by the `.uproject`, obtained under your own license. They are intentionally not redistributed here.
+- Unreal Engine **5.8.1** is the supported starting version. Earlier versions may work, but are untested and have no official support.
+- [Git LFS](https://git-lfs.com/) is required before cloning so Unreal assets download correctly.
+- Windows contributors who build the C++ project need the Visual Studio C++ toolchain supported by Unreal Engine 5.8.
+
+The project’s third-party plugins are included under `Plugins/`. Unreal Engine’s built-in plugins remain part of the required Unreal Engine installation; they are not copied into this repository.
 
 ## Start
 
 ```bash
-git clone https://github.com/AuroraAngel79/Unreal-Open-World-Starter.git
+git lfs install
+git clone https://github.com/GameFusi/Unreal-Open-World-Starter.git
 ```
 
-Open `OWS.uproject` in a compatible Unreal Engine installation. Unreal may prompt you to install or enable required plugins. This public starter intentionally excludes copied Epic template assets; obtain optional template/example content from your licensed Unreal installation.
+Open `OWS.uproject` in Unreal Engine 5.8.1. On the first C++ setup, generate the project files and build when Unreal prompts you. This public starter intentionally excludes copied Epic template assets; obtain optional template/example content from your licensed Unreal installation.
+
+## Included third-party plugins
+
+The following project plugins are included in this repository: GASPALS, OWS Framework, Sigil Inventory, Save Extension, KinetiForge, and VibeUE. Their respective notices and licenses remain with those plugins.
 
 ## Community and contributions
 
