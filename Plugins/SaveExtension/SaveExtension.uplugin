@@ -1,0 +1,52 @@
+{
+	"FileVersion": 3,
+	"Version": 10,
+	"VersionName": "1.5a",
+	"FriendlyName": "Save Extension",
+	"Description": "Provides Unreal Engine with a simple and performant save-game system ",
+	"Category": "Piperift",
+	"CreatedBy": "Piperift",
+	"CreatedByURL": "https://piperift.com",
+	"DocsURL": "https://piperift.com/SaveExtension/",
+	"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/91084f43b68047ac8da6fc88a7467936",
+	"SupportURL": "info@piperift.com",
+	"EngineVersion": "5.8.0",
+	"CanContainContent": false,
+	"Installed": true,
+	"Modules": [
+		{
+			"Name": "SaveExtension",
+			"Type": "Runtime",
+			"LoadingPhase": "PreDefault",
+			"PlatformAllowList": [
+				"Win64",
+				"Mac",
+				"IOS",
+				"Android",
+				"Linux"
+			]
+		},
+		{
+			"Name": "SaveExtensionEditor",
+			"Type": "Editor",
+			"LoadingPhase": "PostEngineInit",
+			"PlatformAllowList": [
+				"Win64",
+				"Mac",
+				"IOS",
+				"Android",
+				"Linux"
+			]
+		},
+		{
+			"Name": "SaveExtensionTest",
+			"Type": "DeveloperTool",
+			"LoadingPhase": "PreDefault",
+			"PlatformAllowList": [
+				"Win64",
+				"Linux",
+				"Mac"
+			]
+		}
+	]
+}
