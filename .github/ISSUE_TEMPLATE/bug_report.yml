@@ -1,0 +1,40 @@
+name: Bug report
+description: Report a reproducible problem in the Open World Starter package.
+title: "[Bug]: "
+labels: ["bug", "needs triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping improve the project. Please avoid sharing private keys, credentials, or personal data.
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Describe the problem and the result you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Project version or commit
+      description: Include the release, branch, or commit SHA you tested.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include Unreal Engine version, platform, and any relevant plugins or settings.
+    validations:
+      required: true
