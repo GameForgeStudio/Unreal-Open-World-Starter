@@ -46,6 +46,7 @@ void USakuraStockVehicleInteractionComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	InitializeSeatOccupancy();
+	SetDriverPresent(false);
 }
 
 void USakuraStockVehicleInteractionComponent::GetLifetimeReplicatedProps(
@@ -360,6 +361,20 @@ USakuraStockVehicleInteractionComponent::GetVehicleMesh() const
 void USakuraStockVehicleInteractionComponent::SetDriverPresent(const bool bPresent)
 {
 	bDriverPresent = bPresent;
+	if (UVehicleDriveAssemblyComponent* Drive = GetKinetiForgeDriveAssembly())
+	{
+		Drive->InputBrake(bPresent ? 0.0f : 1.0f, true);
+		Drive->InputHandbrake(bPresent ? 0.0f : 1.0f, true);
+	}
+	if (!bPresent)
+	{
+		if (UPrimitiveComponent* Body = GetVehiclePhysicsBody())
+		{
+			Body->SetPhysicsLinearVelocity(FVector::ZeroVector);
+			Body->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+			Body->PutAllRigidBodiesToSleep();
+		}
+	}
 }
 
 #if 0 // Project-side engine, parking, and input mutation intentionally disabled; stock vehicle owns these systems.

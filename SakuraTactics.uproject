@@ -17,6 +17,14 @@
 	],
 	"Plugins": [
 		{
+			"Name": "GASPALS",
+			"Enabled": true
+		},
+		{
+			"Name": "OmniWalk",
+			"Enabled": true
+		},
+		{
 			"Name": "SakuraFramework",
 			"Enabled": true
 		},
