@@ -1,0 +1,21 @@
+name: Project question
+description: Ask a focused question that is specific to this repository.
+title: "[Question]: "
+labels: ["question", "needs triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For broad ideas, community discussion, or help that is not tied to a concrete repository task, please use GitHub Discussions instead.
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: Ask one focused question and include the relevant project area.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: What have you already tried?
+      description: Include links, screenshots, logs, or code snippets when useful. Do not include secrets.

@@ -1,0 +1,24 @@
+name: Documentation improvement
+description: Report missing, unclear, or incorrect project documentation.
+title: "[Docs]: "
+labels: ["documentation", "needs triage"]
+body:
+  - type: input
+    id: location
+    attributes:
+      label: Documentation location
+      description: Link the page or identify the file and section.
+    validations:
+      required: true
+  - type: textarea
+    id: issue
+    attributes:
+      label: What needs improvement?
+      description: Explain what is missing, unclear, or incorrect.
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested improvement
+      description: Share wording, examples, or links that would help.
