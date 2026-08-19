@@ -2,7 +2,7 @@
 
 An open-source Unreal Engine starter framework for the OWS Tactics project.
 
-> **Plays like GTA V, drives like Forza 6, hacks like Watch Dogs: Legion.**
+> **Plays like GTA, drives like Forza Horizon, hacks like Watch Dogs.**
 
 ## Requirements
 
