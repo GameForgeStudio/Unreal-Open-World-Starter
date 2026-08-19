@@ -5,6 +5,7 @@
 #include "Components/PrimitiveComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/World.h"
+#include "GameFramework/Controller.h"
 #include "GameFramework/Pawn.h"
 #include "Net/UnrealNetwork.h"
 #include "VehicleDriveAssemblyComponent.h"
@@ -136,7 +137,12 @@ bool UOWSStockVehicleInteractionComponent::SelectAvailableSeat(
 		return false;
 	}
 
-	const bool bControlSeatReservedByController = VehiclePawn->GetController() != nullptr;
+	// Only a *player* driving the vehicle reserves the control seat. A parked
+	// car's AIController (AutoPossessAI) must not block a player from taking the
+	// driver seat — possessing the vehicle evicts that AIController anyway.
+	const AController* SeatController = VehiclePawn->GetController();
+	const bool bControlSeatReservedByController =
+		SeatController != nullptr && SeatController->IsPlayerController();
 	if (bAutoPlacementEnabled)
 	{
 		if (!HasControlSeatOccupant() && !bControlSeatReservedByController)
