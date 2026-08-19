@@ -22,7 +22,7 @@
 		},
 		{
 			"Name": "OmniWalk",
-			"Enabled": true
+			"Enabled": false
 		},
 		{
 			"Name": "OWSFramework",
