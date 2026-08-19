@@ -22,6 +22,8 @@ Open `OWS.uproject` in a compatible Unreal Engine installation. Unreal may promp
 
 GitHub is the source of truth for code, issues, proposals, feature requests, technical discussions, contributions, and project decisions. Discord is for community conversation, discovery, announcements, and general public discussion.
 
+**New to GitHub or ready to help?** Read [How to Contribute](CONTRIBUTING.md) for a beginner-friendly walkthrough using either GitHub Desktop or the GitHub website.
+
 Join the [OWS Tactics project chat on Discord](https://discord.com/channels/1536853959463936100/1539311739340849234).
 
 Contributions are welcome when they support or extend the project north star. Contributions that contradict that direction are out of scope.
