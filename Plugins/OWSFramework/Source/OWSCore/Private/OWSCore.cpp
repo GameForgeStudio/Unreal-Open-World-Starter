@@ -1,0 +1,4 @@
+#include "OWSCore.h"
+
+DEFINE_LOG_CATEGORY(LogOWSCore);
+IMPLEMENT_MODULE(FOWSCoreModule, OWSCore)

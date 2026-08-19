@@ -2,18 +2,18 @@
 
 ## Purpose
 
-Aurora began with a custom game engine and two earlier Neo Sakura prototypes: a browser/custom-runtime prototype and a Unity prototype. Those projects demonstrated the intended game and exposed the strengths and weaknesses of their respective engines. They are reference implementations, not Unreal projects.
+Aurora began with a custom game engine and two earlier Neo OWS prototypes: a browser/custom-runtime prototype and a Unity prototype. Those projects demonstrated the intended game and exposed the strengths and weaknesses of their respective engines. They are reference implementations, not Unreal projects.
 
-The Unreal work began as an evaluation of whether Unreal Engine could supply the mature systems, tooling, physics, open-world support, and production foundation that the custom engine did not yet provide. The goal then became a runnable Sakura Tactics capability prototype—not merely a list of features.
+The Unreal work began as an evaluation of whether Unreal Engine could supply the mature systems, tooling, physics, open-world support, and production foundation that the custom engine did not yet provide. The goal then became a runnable OWS Tactics capability prototype—not merely a list of features.
 
 The active Unreal project is:
 
-- Folder: `C:\Projects\SakuraUnrealPrototype`
-- Descriptor: `SakuraTactics.uproject`
+- Folder: `C:\Projects\OWS`
+- Descriptor: `OWS.uproject`
 - Engine: Unreal Engine 5.8.1 at `C:\UE_5.8`
-- Default map: `/Game/SakuraPrototype/Maps/L_SakuraTestLab_WP`
+- Default map: `/Game/OWSPrototype/Maps/L_OWSTestLab_WP`
 
-The shorter descriptor name was chosen because Unreal repeatedly warns when a project filename exceeds 20 characters. Runtime module names were deliberately left unchanged to avoid breaking serialized `/Script/SakuraUnrealPrototype` class identities.
+The shorter descriptor name was chosen because Unreal repeatedly warns when a project filename exceeds 20 characters. Runtime module names were deliberately left unchanged to avoid breaking serialized `/Script/OWS` class identities.
 
 ## Research and engine selection
 
@@ -51,12 +51,12 @@ The rough package total was discussed as an investment in integrated features, e
 
 - No free, mature, exact-UE-5.8 package met the full Inventory Framework Plugin standard.
 - Sigil Inventory 0.1.0 was selected as the closest permissively licensed UE 5.8 foundation. It is server-authoritative and broad, but very young, has no finished UI/content, and does not provide built-in GAS integration.
-- Lyra remains an architecture reference, not a second inventory backend. Sakura uses one Sigil-owned inventory truth and project-side adapters.
+- Lyra remains an architecture reference, not a second inventory backend. OWS uses one Sigil-owned inventory truth and project-side adapters.
 
 ### Saving
 
 - Save Extension 1.5a is installed for UE 5.8.
-- It is used as a file/slot service behind Sakura-owned persistence seams rather than being treated as automatic persistence for arbitrary third-party runtime state.
+- It is used as a file/slot service behind OWS-owned persistence seams rather than being treated as automatic persistence for arbitrary third-party runtime state.
 
 ## Installed and enabled components
 
@@ -91,11 +91,11 @@ The resulting permanent operating rule is:
 
 The Unreal prototype was created separately from both earlier prototypes. Initially, Epic Launcher and the Unreal Project Browser showed no projects because `C:\Projects` was not in UE 5.8's `CreatedProjectPaths`. The durable discovery root was added and the descriptor's engine association was normalized to `5.8`.
 
-The project now opens directly as `SakuraTactics.uproject` and targets the local UE 5.8.1 installation.
+The project now opens directly as `OWS.uproject` and targets the local UE 5.8.1 installation.
 
 ## Reusable architecture
 
-Reusable integration code lives in `Plugins/SakuraFramework`. Project-specific lab hosting, world actors, and demonstrations live in `Source/SakuraUnrealPrototype`.
+Reusable integration code lives in `Plugins/OWSFramework`. Project-specific lab hosting, world actors, and demonstrations live in `Source/OWS`.
 
 The core authority rules are:
 
@@ -103,8 +103,8 @@ The core authority rules are:
 - Standard Character Movement owns the main character; Mover never co-controls that pawn.
 - Sigil owns inventory and equipment truth.
 - GAS owns abilities, effects, and attributes.
-- Save Extension owns save-file/slot operations; Sakura adapters own domain semantics.
-- The shared Sakura interaction layer may handle doors, seats, possession, parking lifecycle, settings, and input translation, but it must not blend the two vehicle physics systems.
+- Save Extension owns save-file/slot operations; OWS adapters own domain semantics.
+- The shared OWS interaction layer may handle doors, seats, possession, parking lifecycle, settings, and input translation, but it must not blend the two vehicle physics systems.
 
 ## Inventory and Gameplay Ability System prototype
 
@@ -159,7 +159,7 @@ The generated proving ground is an 8.128 km square World Partition landscape wit
 
 The current terrain is synthetic. The requested future direction is to use real topographical/geospatial data for Minneapolis, St. Paul, and surrounding areas at an open-world scale. That real-world import has not yet been performed.
 
-The project Game Bible and earlier prototypes still need a deliberate design pass before the proving ground becomes a representative Neo Sakura world rather than a generic capability test.
+The project Game Bible and earlier prototypes still need a deliberate design pass before the proving ground becomes a representative Neo OWS world rather than a generic capability test.
 
 ## Shader compilation and terrain-generation failures
 
@@ -239,7 +239,7 @@ Vehicle behavior must be state-appropriate. An unoccupied ordinary car should be
 
 The initial standing Manny target used a non-simulating, blocking capsule. On impact, the vehicle first struck that effectively infinite-mass proxy, rebounded, and only afterward activated the ragdoll. That is why both vehicle and person reacted incorrectly.
 
-The latest compiled correction makes the target detect an approaching Sakura-managed vehicle and activate its actual skeletal ragdoll before first blocking contact. The standing capsule ignores the Vehicle channel, and no Chaos or KinetiForge solver code was changed. This correction compiled successfully but still requires hands-on runtime acceptance in the editor.
+The latest compiled correction makes the target detect an approaching OWS-managed vehicle and activate its actual skeletal ragdoll before first blocking contact. The standing capsule ignores the Vehicle channel, and no Chaos or KinetiForge solver code was changed. This correction compiled successfully but still requires hands-on runtime acceptance in the editor.
 
 ## Current controls
 
@@ -273,7 +273,7 @@ The latest compiled correction makes the target detect an approaching Sakura-man
 ### Working or compiled
 
 - UE 5.8.1 project discovery and launch.
-- Reusable Sakura Framework modules.
+- Reusable OWS Framework modules.
 - Standard Character Movement baseline.
 - Isolated Mover comparison.
 - Sigil inventory-to-GAS equipment and consumable proof.
@@ -314,7 +314,7 @@ The latest compiled correction makes the target detect an approaching Sakura-man
 2. Runtime-test the latest pedestrian/ragdoll collision correction with the stock KinetiForge car first, then the stock Chaos car.
 3. Record separate stock-baseline acceptance results for parking, ignition, forward/reverse/brake, stopped exit, camera, wheel presentation, curb response, rollover, and pedestrian impact.
 4. Fix only shared interaction/presentation defects or defects proven to belong to the relevant stock integration. Do not blend solvers.
-5. Read the Game Bible and earlier Neo Sakura prototypes deliberately before expanding the proving ground into representative game content.
+5. Read the Game Bible and earlier Neo OWS prototypes deliberately before expanding the proving ground into representative game content.
 6. Plan a real geospatial/topographical Minneapolis–St. Paul terrain pipeline as a distinct, sourced world-building task.
 7. Only after the stock A/B report is accepted should Aurora choose whether to adopt KinetiForge, buy R-Tune, or authorize a precisely scoped algorithm port.
 

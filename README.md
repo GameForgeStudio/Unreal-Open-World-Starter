@@ -1,6 +1,6 @@
 # Unreal Open World Starter
 
-An open-source Unreal Engine starter framework for the Sakura Tactics project.
+An open-source Unreal Engine starter framework for the OWS Tactics project.
 
 > **Plays like GTA V, drives like Forza 6, hacks like Watch Dogs: Legion.**
 
@@ -16,13 +16,13 @@ An open-source Unreal Engine starter framework for the Sakura Tactics project.
 git clone https://github.com/AuroraAngel79/Unreal-Open-World-Starter.git
 ```
 
-Open `SakuraTactics.uproject` in a compatible Unreal Engine installation. Unreal may prompt you to install or enable required plugins. This public starter intentionally excludes copied Epic template assets; obtain optional template/example content from your licensed Unreal installation.
+Open `OWS.uproject` in a compatible Unreal Engine installation. Unreal may prompt you to install or enable required plugins. This public starter intentionally excludes copied Epic template assets; obtain optional template/example content from your licensed Unreal installation.
 
 ## Community and contributions
 
 GitHub is the source of truth for code, issues, proposals, feature requests, technical discussions, contributions, and project decisions. Discord is for community conversation, discovery, announcements, and general public discussion.
 
-Join the [Sakura Tactics project chat on Discord](https://discord.com/channels/1536853959463936100/1539311739340849234).
+Join the [OWS Tactics project chat on Discord](https://discord.com/channels/1536853959463936100/1539311739340849234).
 
 Contributions are welcome when they support or extend the project north star. Contributions that contradict that direction are out of scope.
 

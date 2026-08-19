@@ -1,4 +1,4 @@
-# Sakura Tactics Prototype Documentation
+# OWS Tactics Prototype Documentation
 
 This directory is the durable record for the Unreal Engine prototype created during the August 2026 evaluation.
 
