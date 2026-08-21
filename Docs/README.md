@@ -6,6 +6,7 @@ This directory is the durable record for the Unreal Engine prototype created dur
 
 - [CONVERSATION_SUMMARY.md](CONVERSATION_SUMMARY.md) — chronological, sanitized summary of the research, implementation, failures, corrections, and current direction.
 - [STACK.md](STACK.md) — technical authority boundaries, runtime architecture, test procedures, limitations, and redistribution notes.
+- [CHARACTER_VEHICLE_ACCEPTANCE_MATRIX.md](CHARACTER_VEHICLE_ACCEPTANCE_MATRIX.md) — repeatable OWS character/vehicle scenarios, coverage tiers, evidence rules, and the full release grid.
 - [../README.md](../README.md) — quick-start instructions and current controls.
 
 ## Source of truth
