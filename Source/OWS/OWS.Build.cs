@@ -28,5 +28,10 @@ public class OWS : ModuleRules
 
 		SetupModulePhysicsSupport(Target);
 		PrivateDefinitions.Add("CHAOS_INCLUDE_LEVEL_1=1");
+
+		if (Target.bBuildEditor)
+		{
+			PrivateDependencyModuleNames.Add("UnrealEd");
+		}
 	}
 }

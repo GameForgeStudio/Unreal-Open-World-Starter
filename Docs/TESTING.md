@@ -38,3 +38,29 @@ Any failed assertion or Unreal process failure returns exit code `1`. The runner
 - `/Game/OWS/Levels/OWS_CourseSection` loads with exactly three OWS character instances.
 - Every OWS character instance uses the shared experimental setup marker.
 - No retired `OWSPrototype` or `OWSTestLab` dependency appears during startup or map loading.
+
+## Character and vehicle functional tests
+
+These editor automation tests exercise the actual OWS possession boundary in the configured canonical map. Build `OWSEditor Win64 Development`, then run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\Scripts\RunOWSCharacterVehicleTests.ps1 -EngineRoot C:\UE_5.8
+```
+
+The successful result ends with:
+
+```text
+[OWS character/vehicle] PASS: repeated stopped cycles and moving bailout/recovery passed.
+```
+
+The suite verifies:
+
+- Five consecutive enter/stopped-exit cycles using the same OWS character and a canonical vehicle.
+- Possession, character visibility and collision, attachment, control-seat occupancy, input-context activation, and camera target on every transition.
+- Moving bailout begins outside the vehicle with a physics ragdoll and releases possession, seat state, and vehicle input.
+- The character recovers to finite, collidable, controllable OWS movement within eight seconds.
+- Immediate re-entry after bailout is rejected and re-entry succeeds after leaving the documented release radius.
+
+The suite names only one expected PIE error: the exact `ABP_GenericRetarget` missing-controller failure tracked by [issue #76](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/76). Any other Unreal error still fails the run. Remove that expectation when #76 is fixed.
+
+Multiplayer is a separate explicit test tier. Server-authoritative transitions are tracked by [issue #27](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/27), and seat-contention/recovery coverage is tracked by [issue #28](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/28). This local editor suite does not claim multiplayer acceptance.
