@@ -28,7 +28,7 @@ Open `OWS.uproject` in Unreal Engine 5.8.1. On the first C++ setup, generate the
 
 ## Included third-party plugins
 
-The following project plugins are included in this repository: GASPALS, OWS Framework, Sigil Inventory, Save Extension, KinetiForge, and VibeUE. Their respective notices and licenses remain with those plugins.
+The following project plugins are included in this repository: GASPALS, OWS Framework, Sigil Inventory, Save Extension, and KinetiForge. Their respective notices and licenses remain with those plugins.
 
 ## Community and contributions
 
