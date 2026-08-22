@@ -12,18 +12,12 @@ public class OWSCore : ModuleRules
 			"CoreUObject",
 			"Engine",
 			"EnhancedInput",
-			"GameplayAbilities",
-			"GameplayTags",
-			"GameplayTasks",
-			"SaveExtension",
-			"SigilInventory",
 			"UMG"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new[]
 		{
 			"InputCore",
-			"NetCore",
 			"Slate",
 			"SlateCore"
 		});

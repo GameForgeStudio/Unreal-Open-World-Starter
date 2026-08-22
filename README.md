@@ -1,6 +1,6 @@
 # Unreal Open World Starter
 
-An open-source Unreal Engine starter framework for the OWS Tactics project.
+An open-source Unreal Engine package for building open-world games from a capable, playable foundation.
 
 > **Plays like GTA, drives like Forza Horizon, hacks like Watch Dogs.**
 
@@ -17,8 +17,12 @@ The project’s third-party plugins are included under `Plugins/`. Unreal Engine
 
 ```bash
 git lfs install
-git clone https://github.com/GameFusi/Unreal-Open-World-Starter.git
+git clone -c core.longpaths=true https://github.com/GameFusi/Unreal-Open-World-Starter.git
 ```
+
+`core.longpaths=true` is required on Windows because some included Unreal assets have paths longer than Git for Windows accepts by default. The clone option stores that setting in this repository without changing your global Git configuration.
+
+On Windows, run the clone from a short parent directory such as `C:\Projects`. UnrealBuildTool also generates deeply nested files and rejects build paths longer than 260 characters even when Git long paths are enabled.
 
 Open `OWS.uproject` in Unreal Engine 5.8.1. On the first C++ setup, generate the project files and build when Unreal prompts you. This public starter intentionally excludes copied Epic template assets; obtain optional template/example content from your licensed Unreal installation.
 
@@ -32,7 +36,7 @@ GitHub is the source of truth for code, issues, proposals, feature requests, tec
 
 **New to GitHub or ready to help?** Read [How to Contribute](CONTRIBUTING.md) for a beginner-friendly walkthrough using either GitHub Desktop or the GitHub website.
 
-Join the [OWS Tactics project chat on Discord](https://discord.com/channels/1536853959463936100/1539311739340849234).
+Join the [OWS community chat on Discord](https://discord.com/channels/1536853959463936100/1539311739340849234).
 
 Contributions are welcome when they support or extend the project north star. Contributions that contradict that direction are out of scope.
 

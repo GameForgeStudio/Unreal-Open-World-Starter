@@ -11,8 +11,7 @@ public class OWS : ModuleRules
 			"Core",
 			"CoreUObject",
 			"Engine",
-			"OWSCore",
-			"OWSMovement"
+			"OWSCore"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]
@@ -21,13 +20,10 @@ public class OWS : ModuleRules
 			"ChaosModularVehicleEngine",
 			"ChaosVehiclesCore",
 			"EnhancedInput",
-			"GameplayAbilities",
 			"InputCore",
 			"KinetiForge",
 			"NetCore",
-			"PhysicsCore",
-			"SaveExtension",
-			"SigilInventory"
+			"PhysicsCore"
 		});
 
 		SetupModulePhysicsSupport(Target);
