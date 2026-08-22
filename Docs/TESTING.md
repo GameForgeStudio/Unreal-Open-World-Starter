@@ -61,6 +61,4 @@ The suite verifies:
 - The character recovers to finite, collidable, controllable OWS movement within eight seconds.
 - Immediate re-entry after bailout is rejected and re-entry succeeds after leaving the documented release radius.
 
-The suite names only one expected PIE error: the exact `ABP_GenericRetarget` missing-controller failure tracked by [issue #76](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/76). Any other Unreal error still fails the run. Remove that expectation when #76 is fixed.
-
 Multiplayer is a separate explicit test tier. Server-authoritative transitions are tracked by [issue #27](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/27), and seat-contention/recovery coverage is tracked by [issue #28](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/28). This local editor suite does not claim multiplayer acceptance.

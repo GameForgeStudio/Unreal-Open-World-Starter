@@ -23,8 +23,6 @@ namespace OWSCharacterVehicleTests
 	constexpr TCHAR MapPath[] = TEXT("/Game/OWS/Levels/OWS_CombinedDemo");
 	constexpr TCHAR VehicleContextPath[] =
 		TEXT("/KinetiForge/Template/Input/IMC_VehicleDefault.IMC_VehicleDefault");
-	constexpr TCHAR TrackedRetargetError[] =
-		TEXT("Accessed None trying to read (real) property K2Node_DynamicCast_AsIKRetarget_IKChains_Controller");
 
 	UWorld* FindGameWorld()
 	{
@@ -450,12 +448,6 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 
 bool FOWSStoppedVehicleCyclesTest::RunTest(const FString& Parameters)
 {
-	// Tracked by #76. Match only the exact known Blueprint runtime error so any
-	// unrelated PIE error still fails this test.
-	AddExpectedErrorPlain(
-		OWSCharacterVehicleTests::TrackedRetargetError,
-		EAutomationExpectedErrorFlags::Contains,
-		0);
 	if (!AutomationOpenMap(OWSCharacterVehicleTests::MapPath))
 	{
 		AddError(TEXT("Failed to open the canonical OWS map for the stopped-exit test."));
@@ -472,11 +464,6 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 
 bool FOWSMovingBailoutRecoveryTest::RunTest(const FString& Parameters)
 {
-	// Tracked by #76. Remove this declaration when that issue is fixed.
-	AddExpectedErrorPlain(
-		OWSCharacterVehicleTests::TrackedRetargetError,
-		EAutomationExpectedErrorFlags::Contains,
-		0);
 	if (!AutomationOpenMap(OWSCharacterVehicleTests::MapPath))
 	{
 		AddError(TEXT("Failed to open the canonical OWS map for the moving-bailout test."));
