@@ -10,8 +10,7 @@ public class OWSEditorTarget : TargetRules
 		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_8;
 		ExtraModuleNames.AddRange(new string[]
 		{
-			"OWS",
-			"OWSEditor"
+			"OWS"
 		});
 	}
 }
