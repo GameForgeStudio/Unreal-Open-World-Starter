@@ -5,6 +5,7 @@ This directory documents the current OWS package, its runtime architecture, and 
 ## Documents
 
 - [STACK.md](STACK.md) — current package structure and runtime ownership.
+- [CONTROLS.md](CONTROLS.md) — verified keyboard, mouse, controller, hotbar, and vehicle controls.
 - [CHARACTER_VEHICLE_ACCEPTANCE_MATRIX.md](CHARACTER_VEHICLE_ACCEPTANCE_MATRIX.md) — repeatable character/vehicle scenarios, coverage tiers, evidence rules, and the release grid.
 - [TESTING.md](TESTING.md) — automated OWS test commands, prerequisites, and expected results.
 - [../README.md](../README.md) — setup, requirements, and contribution links.

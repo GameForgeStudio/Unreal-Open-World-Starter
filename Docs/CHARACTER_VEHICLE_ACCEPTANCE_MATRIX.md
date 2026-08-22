@@ -119,7 +119,7 @@ Run CV-ENV-001 and all CV-FOOT scenarios once per character before using that ch
 | CV-FOOT-006 | Trigger ragdoll while stationary and moving, then recover. | Ragdoll engages once, reacts to momentum and ground, and recovers to a controllable, correctly oriented character. | Video including recovery. |
 | CV-FOOT-007 | Cycle through the complete character roster and return to the starting character. | Each listed variant becomes playable exactly once per cycle and retains the OWS movement feature set. | One roster-cycle video or screenshot sequence. |
 | CV-FOOT-008 | Walk, sprint, jump, crouch, aim, and attempt traversal against a parked representative vehicle from multiple sides. | Ordinary movement collides cleanly. No action causes penetration, explosive impulse, loss of control, or unintended possession. The exact traversal response is `BLOCKED` until [issue #21](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/21) records the intended collision/traversal contract. | Video naming character, vehicle, and approach sides; blocker link for the traversal sub-result. |
-| CV-FOOT-009 | Press R3 while stationary and moving, with the camera in its default state. | R3 performs no OWS on-foot action and does not change camera mode, shoulder, framing, or character facing. | Video showing the camera before and after each press. |
+| CV-FOOT-009 | Enter the supported strafe state, then press R3 while stationary and moving. | R3 toggles the OWS camera shoulder without changing camera style, locomotion mode, or character control. | Video showing both shoulder positions while stationary and moving. |
 
 ## Core character/vehicle loop
 
