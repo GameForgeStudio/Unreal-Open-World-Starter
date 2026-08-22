@@ -226,15 +226,30 @@ namespace OWSCharacterVehicleTests
 
 			if (bEntering)
 			{
-				Actors.VehicleBody->SetPhysicsLinearVelocity(FVector::ZeroVector);
-				Actors.VehicleBody->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+				if (!bEntryPrepared)
+				{
+					Actors.VehicleBody->SetPhysicsLinearVelocity(FVector::ZeroVector);
+					Actors.VehicleBody->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+					if (!Actors.PlaceCharacterAtDriverDoor())
+					{
+						Test.AddError(TEXT("Could not place the character at the selected vehicle door."));
+						return true;
+					}
+					// Allow the physics scene to receive the teleport before the entry
+					// overlap query runs on the next latent-command update.
+					bEntryPrepared = true;
+					PhaseStartedAt = FPlatformTime::Seconds();
+					return false;
+				}
+				// Controller rotation can update while the physics scene receives the
+				// teleport, so refresh the exact door-facing transform before entry.
 				if (!Actors.PlaceCharacterAtDriverDoor())
 				{
-					Test.AddError(TEXT("Could not place the character at the selected vehicle door."));
+					Test.AddError(TEXT("Could not refresh the character at the selected vehicle door."));
 					return true;
 				}
-				if (!Test.TestTrue(TEXT("Debug entry succeeds"),
-					Actors.VehicleInteraction->DebugEnterNearestVehicle()))
+				const bool bEntered = Actors.VehicleInteraction->DebugEnterNearestVehicle();
+				if (!Test.TestTrue(TEXT("Debug entry succeeds"), bEntered))
 				{
 					return true;
 				}
@@ -242,10 +257,16 @@ namespace OWSCharacterVehicleTests
 				{
 					return true;
 				}
+				bEntryPrepared = false;
 				bEntering = false;
 			}
 			else
 			{
+				// Establish the stopped-exit precondition at the moment of exit. The
+				// physics vehicle can drift during the settle interval after entry,
+				// which otherwise sends this test through the moving bailout path.
+				Actors.VehicleBody->SetPhysicsLinearVelocity(FVector::ZeroVector);
+				Actors.VehicleBody->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
 				if (!Test.TestTrue(TEXT("Stopped exit succeeds"),
 					Actors.VehicleInteraction->DebugExitVehicle()))
 				{
@@ -273,6 +294,7 @@ namespace OWSCharacterVehicleTests
 		double PhaseStartedAt = 0.0;
 		int32 CompletedCycles = 0;
 		bool bEntering = true;
+		bool bEntryPrepared = false;
 	};
 
 	class FMovingBailoutCommand final : public IAutomationLatentCommand
