@@ -44,6 +44,7 @@ If you are unsure where something belongs, start a Discussion and ask.
 - For a bug or a defined task, use an existing Issue or create one with the appropriate template.
 - Work in a branch or fork. Never push directly to `main`.
 - Keep each PR focused on one purpose. Separate unrelated changes into separate PRs.
+- Before opening a code or Unreal-content PR, run the applicable checks in [Docs/TESTING.md](Docs/TESTING.md) and report the result in the PR.
 
 ## Choose your route
 

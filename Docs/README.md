@@ -6,6 +6,7 @@ This directory documents the current OWS package, its runtime architecture, and 
 
 - [STACK.md](STACK.md) — current package structure and runtime ownership.
 - [CHARACTER_VEHICLE_ACCEPTANCE_MATRIX.md](CHARACTER_VEHICLE_ACCEPTANCE_MATRIX.md) — repeatable character/vehicle scenarios, coverage tiers, evidence rules, and the release grid.
+- [TESTING.md](TESTING.md) — automated OWS test commands, prerequisites, and expected results.
 - [../README.md](../README.md) — setup, requirements, and contribution links.
 
 ## Source of truth
