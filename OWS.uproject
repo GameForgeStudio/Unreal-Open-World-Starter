@@ -55,40 +55,5 @@
 			"Name": "KinetiForge",
 			"Enabled": true
 		},
-		{
-			"Name": "ModelingToolsEditorMode",
-			"Enabled": true,
-			"TargetAllowList": [
-				"Editor"
-			]
-		},
-		{
-			"Name": "ModelContextProtocol",
-			"Enabled": true,
-			"TargetAllowList": [
-				"Editor"
-			]
-		},
-		{
-			"Name": "EditorToolset",
-			"Enabled": true,
-			"TargetAllowList": [
-				"Editor"
-			]
-		},
-		{
-			"Name": "PhysicsToolsets",
-			"Enabled": true,
-			"TargetAllowList": [
-				"Editor"
-			]
-		},
-		{
-			"Name": "VibeUE",
-			"Enabled": true,
-			"TargetAllowList": [
-				"Editor"
-			]
-		}
 	]
 }
