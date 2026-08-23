@@ -20,6 +20,9 @@
 #include "GameFramework/PlayerController.h"
 #include "InputCoreTypes.h"
 #include "InputMappingContext.h"
+#include "OWSControllerHotbarComponent.h"
+#include "OWSInteractionTargetComponent.h"
+#include "OWSSelectorComponent.h"
 #include "OWSStockVehicleInteractionComponent.h"
 
 namespace
@@ -61,6 +64,19 @@ void UOWSVehicleInteractionComponent::BeginPlay()
 
 void UOWSVehicleInteractionComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	if (BoundSelector)
+	{
+		BoundSelector = nullptr;
+	}
+	SetVehicleCancelContextActive(false);
+	if (BoundHotbar)
+	{
+		BoundHotbar->OnCancelRequested.RemoveDynamic(
+			this, &UOWSVehicleInteractionComponent::HandleCancelRequested);
+		BoundHotbar->OnCancelReleased.RemoveDynamic(
+			this, &UOWSVehicleInteractionComponent::HandleCancelReleased);
+		BoundHotbar = nullptr;
+	}
 	FinishControlledBailout();
 	if (GEngine)
 	{
@@ -75,7 +91,99 @@ void UOWSVehicleInteractionComponent::TickComponent(
 	FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	RefreshSelectorBinding();
+	RefreshCancelBinding();
 	UpdateInteraction(DeltaTime);
+}
+
+void UOWSVehicleInteractionComponent::RefreshSelectorBinding()
+{
+	const APlayerController* Controller = Cast<APlayerController>(GetOwner());
+	const ACharacter* Character = Controller ? Cast<ACharacter>(Controller->GetPawn()) : nullptr;
+	UOWSSelectorComponent* DesiredSelector = Character
+		? Character->FindComponentByClass<UOWSSelectorComponent>()
+		: BoundSelector.Get();
+	if (DesiredSelector == BoundSelector)
+	{
+		return;
+	}
+	BoundSelector = DesiredSelector;
+}
+
+void UOWSVehicleInteractionComponent::RefreshCancelBinding()
+{
+	UOWSControllerHotbarComponent* DesiredHotbar = GetOwner()
+		? GetOwner()->FindComponentByClass<UOWSControllerHotbarComponent>()
+		: nullptr;
+	if (DesiredHotbar == BoundHotbar)
+	{
+		return;
+	}
+	if (BoundHotbar)
+	{
+		if (bVehicleCancelContextActive)
+		{
+			BoundHotbar->SetCancelContextActive(bPreviousCancelContextActive);
+			bVehicleCancelContextActive = false;
+			bPreviousCancelContextActive = false;
+		}
+		BoundHotbar->OnCancelRequested.RemoveDynamic(
+			this, &UOWSVehicleInteractionComponent::HandleCancelRequested);
+		BoundHotbar->OnCancelReleased.RemoveDynamic(
+			this, &UOWSVehicleInteractionComponent::HandleCancelReleased);
+	}
+	BoundHotbar = DesiredHotbar;
+	if (BoundHotbar)
+	{
+		BoundHotbar->OnCancelRequested.AddUniqueDynamic(
+			this, &UOWSVehicleInteractionComponent::HandleCancelRequested);
+		BoundHotbar->OnCancelReleased.AddUniqueDynamic(
+			this, &UOWSVehicleInteractionComponent::HandleCancelReleased);
+		if (OccupiedVehicle)
+		{
+			SetVehicleCancelContextActive(true);
+		}
+	}
+}
+
+void UOWSVehicleInteractionComponent::SetVehicleCancelContextActive(const bool bActive)
+{
+	if (!BoundHotbar || bActive == bVehicleCancelContextActive)
+	{
+		return;
+	}
+	if (bActive)
+	{
+		bPreviousCancelContextActive = BoundHotbar->IsCancelContextActive();
+		BoundHotbar->SetCancelContextActive(true);
+		bVehicleCancelContextActive = true;
+	}
+	else
+	{
+		BoundHotbar->SetCancelContextActive(bPreviousCancelContextActive);
+		bVehicleCancelContextActive = false;
+		bPreviousCancelContextActive = false;
+	}
+}
+
+void UOWSVehicleInteractionComponent::HandleCancelRequested()
+{
+	if (!OccupiedVehicle)
+	{
+		return;
+	}
+	bCancelHeld = true;
+	ExitHoldElapsed = 0.0f;
+	if (GetVehicleSpeedMph() <= ImmediateExitSpeedMph)
+	{
+		TryExitVehicle();
+	}
+}
+
+void UOWSVehicleInteractionComponent::HandleCancelReleased()
+{
+	bCancelHeld = false;
+	ExitHoldElapsed = 0.0f;
 }
 
 void UOWSVehicleInteractionComponent::ShowPrompt(const FString& Text) const
@@ -114,14 +222,6 @@ void UOWSVehicleInteractionComponent::UpdateInteraction(const float DeltaTime)
 	}
 	UpdateVehicleExitTrace(DeltaTime);
 
-	// Poll raw key state so Enhanced Input mapping contexts can't swallow it.
-	const bool bEnterDown =
-		Controller->IsInputKeyDown(EKeys::F) ||
-		Controller->IsInputKeyDown(EKeys::Gamepad_FaceButton_Left);
-	const bool bExitDown =
-		Controller->IsInputKeyDown(EKeys::F) ||
-		Controller->IsInputKeyDown(EKeys::Gamepad_FaceButton_Right);
-
 	if (!OccupiedVehicle)
 	{
 		ExitHoldElapsed = 0.0f;
@@ -131,7 +231,6 @@ void UOWSVehicleInteractionComponent::UpdateInteraction(const float DeltaTime)
 		{
 			UpdateControlledBailout(DeltaTime);
 			ShowPrompt(TEXT("Bailed out!"));
-			bInteractKeyWasDown = bEnterDown;
 			return;
 		}
 
@@ -140,7 +239,6 @@ void UOWSVehicleInteractionComponent::UpdateInteraction(const float DeltaTime)
 		{
 			UpdateRagdollRecovery(DeltaTime);
 			ShowPrompt(TEXT("Bailed out!"));
-			bInteractKeyWasDown = bEnterDown;
 			return;
 		}
 
@@ -157,25 +255,23 @@ void UOWSVehicleInteractionComponent::UpdateInteraction(const float DeltaTime)
 			}
 		}
 
-		bool bCanEnter = false;
-		if (Character)
+		if (Character && BoundSelector)
 		{
-			UOWSStockVehicleInteractionComponent* Interaction = nullptr;
-			FName DoorId = NAME_None;
-			FName SeatId = NAME_None;
-			if (const APawn* Vehicle =
-				FindEnterableVehicle(*Character, Interaction, DoorId, SeatId))
+			APawn* SelectedVehicle = Cast<APawn>(BoundSelector->GetDetectedActor());
+			UOWSInteractionTargetComponent* SelectedTarget =
+				BoundSelector->GetDetectedInteractionTarget();
+			FText FailureReason;
+			if (SelectedVehicle && SelectedTarget &&
+				SelectedTarget->GetOwner() == SelectedVehicle &&
+				CanEnterVehicleThroughDoor(
+					SelectedVehicle, SelectedTarget->InteractionId, FailureReason))
 			{
-				bCanEnter = true;
 				ShowPrompt(FString::Printf(
-					TEXT("Press  [F]  to enter  %s"), *Vehicle->GetActorNameOrLabel()));
+					TEXT("Press  [F / Square]  to enter  %s through %s"),
+					*SelectedVehicle->GetActorNameOrLabel(),
+					*SelectedTarget->InteractionId.ToString()));
 			}
 		}
-		if (bEnterDown && !bInteractKeyWasDown && bCanEnter)
-		{
-			TryEnterVehicle();
-		}
-		bInteractKeyWasDown = bEnterDown;
 		return;
 	}
 
@@ -193,18 +289,14 @@ void UOWSVehicleInteractionComponent::UpdateInteraction(const float DeltaTime)
 	{
 		ExitHoldElapsed = 0.0f;
 		ShowPrompt(FString::Printf(
-			TEXT("Speed: %.1f mph\nPress  [F]  to exit"), CurrentVehicleSpeedMph));
-		if (bExitDown && !bInteractKeyWasDown)
-		{
-			TryExitVehicle();
-		}
+			TEXT("Speed: %.1f mph\nPress  [Escape / Circle]  to exit"), CurrentVehicleSpeedMph));
 	}
-	else if (bExitDown)
+	else if (bCancelHeld)
 	{
 		ExitHoldElapsed += DeltaTime;
 		const float Remaining = FMath::Max(0.0f, MovingExitHoldSeconds - ExitHoldElapsed);
 		ShowPrompt(FString::Printf(
-			TEXT("Speed: %.1f mph\nHold  [F]  to bail out...  %.1fs"),
+			TEXT("Speed: %.1f mph\nHold  [Escape / Circle]  to bail out...  %.1fs"),
 			CurrentVehicleSpeedMph, Remaining));
 		if (ExitHoldElapsed >= MovingExitHoldSeconds)
 		{
@@ -216,13 +308,67 @@ void UOWSVehicleInteractionComponent::UpdateInteraction(const float DeltaTime)
 	{
 		ExitHoldElapsed = 0.0f;
 		ShowPrompt(FString::Printf(
-			TEXT("Speed: %.1f mph\nHold  [F]  to bail out while moving"),
+			TEXT("Speed: %.1f mph\nHold  [Escape / Circle]  to bail out while moving"),
 			CurrentVehicleSpeedMph));
 	}
-	bInteractKeyWasDown = bExitDown;
 }
 
-bool UOWSVehicleInteractionComponent::TryEnterVehicle()
+bool UOWSVehicleInteractionComponent::CanEnterVehicleThroughDoor(
+	APawn* RequestedVehicle,
+	const FName RequestedDoorId,
+	FText& OutFailureReason) const
+{
+	OutFailureReason = FText::GetEmpty();
+	APlayerController* Controller = Cast<APlayerController>(GetOwner());
+	ACharacter* Character = Controller ? Cast<ACharacter>(Controller->GetPawn()) : nullptr;
+	if (!Controller || !Character || !RequestedVehicle || RequestedDoorId.IsNone() ||
+		OccupiedVehicle || bControlledBailoutActive || bRagdollActive)
+	{
+		OutFailureReason = NSLOCTEXT(
+			"OWSVehicleInteraction", "EntryStateUnavailable",
+			"Vehicle entry is unavailable in the current player state.");
+		return false;
+	}
+	UOWSStockVehicleInteractionComponent* Interaction = nullptr;
+	FName DoorId = NAME_None;
+	FName SeatId = NAME_None;
+	if (!FindEnterableVehicle(
+		*Character, Interaction, DoorId, SeatId,
+		RequestedVehicle, RequestedDoorId))
+	{
+		OutFailureReason = NSLOCTEXT(
+			"OWSVehicleInteraction", "DoorUnavailable",
+			"That vehicle door is unavailable or out of range.");
+		return false;
+	}
+	return true;
+}
+
+bool UOWSVehicleInteractionComponent::TryEnterVehicleThroughDoor(
+	APawn* RequestedVehicle,
+	const FName RequestedDoorId,
+	FText& OutFailureReason)
+{
+	if (!CanEnterVehicleThroughDoor(
+		RequestedVehicle, RequestedDoorId, OutFailureReason))
+	{
+		return false;
+	}
+	if (!TryEnterVehicle(RequestedVehicle, RequestedDoorId))
+	{
+		OutFailureReason = NSLOCTEXT(
+			"OWSVehicleInteraction", "EntryRejected",
+			"Vehicle entry could not be completed.");
+		return false;
+	}
+	UE_LOG(LogTemp, Display, TEXT("[VIC] Entered Activate target %s door=%s"),
+		*RequestedVehicle->GetActorNameOrLabel(), *RequestedDoorId.ToString());
+	return true;
+}
+
+bool UOWSVehicleInteractionComponent::TryEnterVehicle(
+	APawn* RequestedVehicle,
+	const FName RequestedDoorId)
 {
 	APlayerController* Controller = Cast<APlayerController>(GetOwner());
 	ACharacter* Character = Controller ? Cast<ACharacter>(Controller->GetPawn()) : nullptr;
@@ -234,7 +380,9 @@ bool UOWSVehicleInteractionComponent::TryEnterVehicle()
 	UOWSStockVehicleInteractionComponent* Interaction = nullptr;
 	FName DoorId = NAME_None;
 	FName SeatId = NAME_None;
-	APawn* Vehicle = FindEnterableVehicle(*Character, Interaction, DoorId, SeatId);
+	APawn* Vehicle = FindEnterableVehicle(
+		*Character, Interaction, DoorId, SeatId,
+		RequestedVehicle, RequestedDoorId);
 	if (!Vehicle || !Interaction || !Interaction->IsControlSeat(SeatId) ||
 		!Interaction->OccupySeat(SeatId, Character))
 	{
@@ -281,6 +429,8 @@ bool UOWSVehicleInteractionComponent::TryEnterVehicle()
 	Interaction->SetDriverPresent(true);
 	ApplyVehicleInputContext(true);
 	StartVehicleExitTrace(*Character, *Vehicle);
+	bCancelHeld = false;
+	SetVehicleCancelContextActive(true);
 	// Hand the view to the vehicle so its spring-arm chase camera is used.
 	SetCameraTarget(Vehicle, CameraBlendSeconds);
 	return true;
@@ -411,6 +561,9 @@ bool UOWSVehicleInteractionComponent::TryExitVehicle()
 	OccupiedSeatId = NAME_None;
 	OccupiedDoorId = NAME_None;
 	HomeCharacter = nullptr;
+	bCancelHeld = false;
+	ExitHoldElapsed = 0.0f;
+	SetVehicleCancelContextActive(false);
 	ApplyVehicleInputContext(false);
 	// Cut straight to the character when bailing: blending from a camera that is
 	// racing away on the car sweeps the view across the level and reads as a
@@ -990,7 +1143,9 @@ APawn* UOWSVehicleInteractionComponent::FindEnterableVehicle(
 	ACharacter& Character,
 	UOWSStockVehicleInteractionComponent*& OutInteraction,
 	FName& OutDoorId,
-	FName& OutSeatId) const
+	FName& OutSeatId,
+	const APawn* RequiredVehicle,
+	const FName RequiredDoorId) const
 {
 	OutInteraction = nullptr;
 	OutDoorId = NAME_None;
@@ -999,6 +1154,34 @@ APawn* UOWSVehicleInteractionComponent::FindEnterableVehicle(
 	if (!World)
 	{
 		return nullptr;
+	}
+	if (RequiredVehicle && !RequiredDoorId.IsNone())
+	{
+		APawn* Candidate = const_cast<APawn*>(RequiredVehicle);
+		UOWSStockVehicleInteractionComponent* CandidateInteraction =
+			Candidate->FindComponentByClass<UOWSStockVehicleInteractionComponent>();
+		AController* CandidateController = Candidate->GetController();
+		FTransform DoorTransform;
+		if (!CandidateInteraction ||
+			(CandidateController && CandidateController->IsPlayerController()) ||
+			Candidate == ReentryBlockedVehicle ||
+			!CandidateInteraction->GetDoorWorldTransform(RequiredDoorId, DoorTransform) ||
+			FVector::Dist(Character.GetActorLocation(), DoorTransform.GetLocation()) >
+				MaximumEnterDistance)
+		{
+			return nullptr;
+		}
+		FName SeatId;
+		if (!CandidateInteraction->SelectAvailableSeat(
+			RequiredDoorId, true, &Character, SeatId) ||
+			!CandidateInteraction->IsControlSeat(SeatId))
+		{
+			return nullptr;
+		}
+		OutInteraction = CandidateInteraction;
+		OutDoorId = RequiredDoorId;
+		OutSeatId = SeatId;
+		return Candidate;
 	}
 
 	TArray<FOverlapResult> Hits;
@@ -1013,6 +1196,10 @@ APawn* UOWSVehicleInteractionComponent::FindEnterableVehicle(
 	for (const FOverlapResult& Hit : Hits)
 	{
 		APawn* Candidate = Cast<APawn>(Hit.GetActor());
+		if (RequiredVehicle && Candidate != RequiredVehicle)
+		{
+			continue;
+		}
 		UOWSStockVehicleInteractionComponent* CandidateInteraction = Candidate
 			? Candidate->FindComponentByClass<UOWSStockVehicleInteractionComponent>() : nullptr;
 		// Reject a vehicle only if a *player* already controls it. Parked cars

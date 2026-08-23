@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Components/ActorComponent.h"
+#include "OWSInteractionTargetComponent.h"
 
 #include "OWSStockVehicleInteractionComponent.generated.h"
 
@@ -10,6 +11,7 @@ class UModularVehicleBaseComponent;
 class UPrimitiveComponent;
 class USkeletalMeshComponent;
 class UVehicleDriveAssemblyComponent;
+class UOWSInteractionTargetComponent;
 
 USTRUCT(BlueprintType)
 struct FOWSStockVehicleSeatDefinition
@@ -70,7 +72,8 @@ struct FOWSStockVehicleSeatOccupancy
  */
 UCLASS(ClassGroup = (OWS), meta = (BlueprintSpawnableComponent))
 class OWS_API UOWSStockVehicleInteractionComponent final
-	: public UActorComponent
+	: public UActorComponent,
+	  public IOWSInteractionTargetHandler
 {
 	GENERATED_BODY()
 
@@ -78,6 +81,7 @@ public:
 	UOWSStockVehicleInteractionComponent();
 
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void GetLifetimeReplicatedProps(
 		TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -103,6 +107,16 @@ public:
 	FName GetSeatForOccupant(const AActor* OccupantActor) const;
 	bool HasControlSeatOccupant() const;
 	bool IsRecoveryOwner(const AActor* OccupantActor) const;
+	UOWSInteractionTargetComponent* GetDoorInteractionTarget(FName DoorId) const;
+
+	virtual bool CanActivateOWSTarget_Implementation(
+		UOWSInteractionTargetComponent* Target,
+		AController* Activator,
+		FText& OutFailureReason) override;
+	virtual bool ActivateOWSTarget_Implementation(
+		UOWSInteractionTargetComponent* Target,
+		AController* Activator,
+		FText& OutFailureReason) override;
 
 	/**
 	 * Applies the project lifecycle around Epic's otherwise untouched stock
@@ -116,6 +130,7 @@ public:
 	USkeletalMeshComponent* GetVehicleMesh() const;
 
 private:
+	void CreateDoorInteractionTargets();
 	void InitializeSeatOccupancy();
 	const FOWSStockVehicleSeatDefinition* FindSeatDefinition(FName SeatId) const;
 	const FOWSStockVehicleDoorDefinition* FindDoorDefinition(FName DoorId) const;
@@ -132,6 +147,12 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = "OWS|Vehicle|Occupancy", meta = (ClampMin = "-1.0", ClampMax = "1.0"))
 	float MinimumDoorFacingDot = 0.35f;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UOWSInteractionTargetComponent>> DoorInteractionTargets;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UOWSInteractionTargetComponent>> RuntimeCreatedDoorInteractionTargets;
 
 	/** Bone physically locked to the world while the unoccupied car is parked. */
 	UPROPERTY(Transient)

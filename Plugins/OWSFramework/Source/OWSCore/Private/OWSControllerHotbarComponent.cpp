@@ -107,8 +107,11 @@ void UOWSControllerHotbarComponent::InstallInputBindings()
 	HotbarInputComponent->BindKey(EKeys::Gamepad_DPad_Left, IE_Pressed, this, &ThisClass::OnDPadLeftPressed).bConsumeInput = true;
 	HotbarInputComponent->BindKey(EKeys::Gamepad_FaceButton_Top, IE_Pressed, this, &ThisClass::OnFaceTopPressed);
 	HotbarInputComponent->BindKey(EKeys::Gamepad_FaceButton_Right, IE_Pressed, this, &ThisClass::OnFaceRightPressed);
+	HotbarInputComponent->BindKey(EKeys::Gamepad_FaceButton_Right, IE_Released, this, &ThisClass::OnFaceRightReleased);
 	HotbarInputComponent->BindKey(EKeys::Gamepad_FaceButton_Bottom, IE_Pressed, this, &ThisClass::OnFaceBottomPressed);
 	HotbarInputComponent->BindKey(EKeys::Gamepad_FaceButton_Left, IE_Pressed, this, &ThisClass::OnFaceLeftPressed);
+	HotbarInputComponent->BindKey(EKeys::Escape, IE_Pressed, this, &ThisClass::OnKeyboardCancelPressed);
+	HotbarInputComponent->BindKey(EKeys::Escape, IE_Released, this, &ThisClass::OnKeyboardCancelReleased);
 	HotbarInputComponent->BindKey(EKeys::Gamepad_RightTrigger, IE_Pressed, this, &ThisClass::OnRightTriggerPressed).bConsumeInput = true;
 	HotbarInputComponent->BindKey(EKeys::Gamepad_RightTrigger, IE_Released, this, &ThisClass::OnRightTriggerReleased).bConsumeInput = true;
 	PlayerController->PushInputComponent(HotbarInputComponent);
@@ -186,6 +189,10 @@ void UOWSControllerHotbarComponent::UpdateRoutedInputConsumption()
 		{
 			Binding.bConsumeInput = bConsumeFaces || (Key == EKeys::Gamepad_FaceButton_Right && bCancelContextActive);
 		}
+		else if (Key == EKeys::Escape)
+		{
+			Binding.bConsumeInput = bCancelContextActive;
+		}
 	}
 }
 
@@ -252,9 +259,37 @@ void UOWSControllerHotbarComponent::OnFaceTopPressed() { Route(EOWSHotbarInput::
 void UOWSControllerHotbarComponent::OnFaceRightPressed()
 {
 	if (ActiveLayer != EOWSHotbarLayer::None) Route(EOWSHotbarInput::FaceRight);
-	else if (bCancelContextActive) OnCancelRequested.Broadcast();
+	else if (bCancelContextActive)
+	{
+		bCancelPressedInContext = true;
+		OnCancelRequested.Broadcast();
+	}
+}
+void UOWSControllerHotbarComponent::OnFaceRightReleased()
+{
+	if (bCancelPressedInContext)
+	{
+		bCancelPressedInContext = false;
+		OnCancelReleased.Broadcast();
+	}
 }
 void UOWSControllerHotbarComponent::OnFaceBottomPressed() { Route(EOWSHotbarInput::FaceBottom); }
 void UOWSControllerHotbarComponent::OnFaceLeftPressed() { Route(EOWSHotbarInput::FaceLeft); }
+void UOWSControllerHotbarComponent::OnKeyboardCancelPressed()
+{
+	if (bCancelContextActive)
+	{
+		bCancelPressedInContext = true;
+		OnCancelRequested.Broadcast();
+	}
+}
+void UOWSControllerHotbarComponent::OnKeyboardCancelReleased()
+{
+	if (bCancelPressedInContext)
+	{
+		bCancelPressedInContext = false;
+		OnCancelReleased.Broadcast();
+	}
+}
 void UOWSControllerHotbarComponent::OnRightTriggerPressed() { OnPrimaryRequested.Broadcast(); }
 void UOWSControllerHotbarComponent::OnRightTriggerReleased() { OnPrimaryReleased.Broadcast(); }

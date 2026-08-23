@@ -15,6 +15,15 @@ REQUIRED_ASSETS = (
     "/KinetiForge/Template/Vehicles/DefaultCar/DefaultVehicle",
     "/KinetiForge/Template/Vehicles/RWD/DriftCar/BP_DriftCar",
 )
+SELECTOR_LEVEL_BUTTONS = {
+    "Button_Widget",
+    "Button_Widget2",
+    "Button_Widget3",
+    "Button_Color_1",
+    "Button_Color_2",
+    "Button_Color_3",
+}
+LEVEL_BUTTON_CLASS = "/GASPALS/LevelPrototyping/LevelButton.LevelButton_C"
 
 
 def require(condition, message):
@@ -52,6 +61,18 @@ def validate_characters():
     )
 
     for character in characters:
+        selectors = character.get_components_by_class(unreal.OWSSelectorComponent)
+        require(
+            len(selectors) == 1,
+            "{} has {} OWS selector components".format(
+                character.get_actor_label(), len(selectors)
+            ),
+        )
+        require(
+            selectors[0].has_valid_selector_stacks(),
+            "{} has an invalid selector stack".format(character.get_actor_label()),
+        )
+
         meshes = [
             component
             for component in character.get_components_by_class(
@@ -73,9 +94,44 @@ def validate_characters():
         unreal.log("OWS_SMOKE|CHARACTER|{}".format(character.get_actor_label()))
 
 
+def validate_level_button_routing():
+    actors = unreal.get_editor_subsystem(unreal.EditorActorSubsystem).get_all_level_actors()
+    level_buttons = [
+        actor
+        for actor in actors
+        if actor.get_class().get_path_name() == LEVEL_BUTTON_CLASS
+    ]
+    found_selector_buttons = set()
+    for button in level_buttons:
+        label = button.get_actor_label()
+        targets = button.get_components_by_class(unreal.OWSInteractionTargetComponent)
+        adapters = button.get_components_by_class(
+            unreal.OWSLevelButtonInteractionComponent
+        )
+        if label in SELECTOR_LEVEL_BUTTONS:
+            found_selector_buttons.add(label)
+            require(
+                len(targets) == 1 and len(adapters) == 1,
+                "{} must have one OWS target and one LevelButton adapter".format(label),
+            )
+            unreal.log("OWS_SMOKE|SELECTOR_BUTTON|{}".format(label))
+        else:
+            require(
+                not targets and not adapters,
+                "Unscoped LevelButton {} received OWS selector routing".format(label),
+            )
+    require(
+        found_selector_buttons == SELECTOR_LEVEL_BUTTONS,
+        "Missing selector LevelButtons: {}".format(
+            sorted(SELECTOR_LEVEL_BUTTONS - found_selector_buttons)
+        ),
+    )
+
+
 load_required_assets()
 canonical_world = load_map(CANONICAL_MAP)
 unreal.SystemLibrary.execute_console_command(canonical_world, "MAP CHECK")
 load_map(COURSE_MAP)
 validate_characters()
+validate_level_button_routing()
 unreal.log("OWS_SMOKE|PASS|clean-start validation passed")

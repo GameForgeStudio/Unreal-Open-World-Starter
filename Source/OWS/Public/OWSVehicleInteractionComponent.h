@@ -7,7 +7,10 @@
 class ACharacter;
 class APawn;
 class APlayerController;
+class UOWSSelectorComponent;
 class UOWSStockVehicleInteractionComponent;
+class UOWSInteractionTargetComponent;
+class UOWSControllerHotbarComponent;
 class UAnimInstance;
 class UAnimSequenceBase;
 class UCharacterMovementComponent;
@@ -35,6 +38,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category="OWS|Vehicle|Debug")
 	bool DebugExitVehicle();
 
+	/** Exact interaction-point entry used by the shared selector contract. */
+	bool CanEnterVehicleThroughDoor(
+		APawn* RequestedVehicle,
+		FName RequestedDoorId,
+		FText& OutFailureReason) const;
+	bool TryEnterVehicleThroughDoor(
+		APawn* RequestedVehicle,
+		FName RequestedDoorId,
+		FText& OutFailureReason);
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -48,8 +61,20 @@ private:
 	// IsInputKeyDown is immune to Enhanced Input consuming the key, which the
 	// previous BindKey approach was not.
 	void UpdateInteraction(float DeltaTime);
+	void RefreshSelectorBinding();
+	void RefreshCancelBinding();
+	void SetVehicleCancelContextActive(bool bActive);
+
+	UFUNCTION()
+	void HandleCancelRequested();
+
+	UFUNCTION()
+	void HandleCancelReleased();
+
 	void ShowPrompt(const FString& Text) const;
-	bool TryEnterVehicle();
+	bool TryEnterVehicle(
+		APawn* RequestedVehicle = nullptr,
+		FName RequestedDoorId = NAME_None);
 	bool TryExitVehicle();
 	void EjectCharacterWithPhysics(
 		ACharacter& Character,
@@ -76,7 +101,9 @@ private:
 		ACharacter& Character,
 		UOWSStockVehicleInteractionComponent*& OutInteraction,
 		FName& OutDoorId,
-		FName& OutSeatId) const;
+		FName& OutSeatId,
+		const APawn* RequiredVehicle = nullptr,
+		FName RequiredDoorId = NAME_None) const;
 	bool PlaceCharacterAtDoorExit(
 		ACharacter& Character,
 		const APawn& Vehicle,
@@ -103,6 +130,12 @@ private:
 	TObjectPtr<APawn> OccupiedVehicle = nullptr;
 
 	UPROPERTY(Transient)
+	TObjectPtr<UOWSSelectorComponent> BoundSelector = nullptr;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UOWSControllerHotbarComponent> BoundHotbar = nullptr;
+
+	UPROPERTY(Transient)
 	FName OccupiedSeatId = NAME_None;
 
 	/** Door used for the current entry and therefore preferred for stopped exit. */
@@ -119,8 +152,9 @@ private:
 	/** Character position at bailout; the lock clears only after the player leaves it. */
 	FVector ReentryBlockOrigin = FVector::ZeroVector;
 
-	/** Rising-edge tracker for the interact key so a hold triggers once. */
-	bool bInteractKeyWasDown = false;
+	bool bCancelHeld = false;
+	bool bVehicleCancelContextActive = false;
+	bool bPreviousCancelContextActive = false;
 
 	/** Seconds the exit key has been held while the vehicle is moving. */
 	float ExitHoldElapsed = 0.0f;

@@ -10,6 +10,7 @@ class UUserWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnOWSHotbarLayerChanged);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnOWSCancelRequested);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnOWSCancelReleased);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnOWSPrimaryRequested);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnOWSPrimaryReleased);
 
@@ -123,6 +124,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category="OWS|Input")
 	FOnOWSCancelRequested OnCancelRequested;
 
+	UPROPERTY(BlueprintAssignable, Category="OWS|Input")
+	FOnOWSCancelReleased OnCancelReleased;
+
 	/** Generic R2 primary-hand/unarmed action seam. Gameplay assigns its behavior. */
 	UPROPERTY(BlueprintAssignable, Category="OWS|Input")
 	FOnOWSPrimaryRequested OnPrimaryRequested;
@@ -153,8 +157,11 @@ private:
 	void OnDPadLeftPressed();
 	void OnFaceTopPressed();
 	void OnFaceRightPressed();
+	void OnFaceRightReleased();
 	void OnFaceBottomPressed();
 	void OnFaceLeftPressed();
+	void OnKeyboardCancelPressed();
+	void OnKeyboardCancelReleased();
 	void OnRightTriggerPressed();
 	void OnRightTriggerReleased();
 
@@ -163,6 +170,7 @@ private:
 	bool bLeftShoulderHeld = false;
 	bool bRightShoulderHeld = false;
 	bool bCancelContextActive = false;
+	bool bCancelPressedInContext = false;
 	EOWSHotbarLayer FirstHeldShoulder = EOWSHotbarLayer::None;
 	EOWSHotbarLayer ActiveLayer = EOWSHotbarLayer::None;
 };

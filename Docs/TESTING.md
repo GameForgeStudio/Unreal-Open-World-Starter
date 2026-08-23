@@ -69,3 +69,46 @@ The suite verifies:
 Before merging gameplay changes, manually smoke-test one stopped exit, a 5–15 mph bailout, and controlled rolls at both moderate and high speed in `/Game/OWS/Levels/OWS_CombinedDemo`. Confirm the lower-speed bailout does not force a landing or stumble animation; confirm the roll loops until runnable speed, left-stick steering is limited but useful, locomotion resumes directly, and the camera remains aligned. After each exit or recovery, verify vehicle re-entry, locomotion (including analog walk/shuffle and sprint), traversal, aiming, hotbar/equipment/abilities, camera input, and collision. Those feature-level actions require player input and are not claimed by the automation suite.
 
 Multiplayer is a separate explicit test tier. Server-authoritative transitions are tracked by [issue #27](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/27), and seat-contention/recovery coverage is tracked by [issue #28](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/28). This local editor suite does not claim multiplayer acceptance.
+
+## Selector and activation tests
+
+Build `OWSEditor Win64 Development`, then run the selector automation filter:
+
+```powershell
+& C:\UE_5.8\Engine\Binaries\Win64\UnrealEditor-Cmd.exe `
+  .\OWS.uproject `
+  '-ExecCmds=Automation RunTests OWS.Selector' `
+  '-TestExit=Automation Test Queue Empty' `
+  -unattended -nop4 -nosplash -nosound -RenderOffscreen -log
+```
+
+The filter verifies the configurable default stack and shared-character setup,
+proves precision targeting still detects another character and a ground menu
+token with every passive range detector disabled, resolves an exact authored
+vehicle-door interaction point, and proves that the shared Activate dispatch
+transfers control to that vehicle.
+
+Before merging selector changes, manually smoke-test
+`/Game/OWS/Levels/OWS_CombinedDemo`:
+
+1. Look across ordinary geometry, characters, and vehicles; confirm the
+   bottom-right detected name follows the precision ray.
+2. Aim at the driver-side door of a stopped vehicle and press `F` or
+   `Square / X`; confirm that exact authored door is used and no corner rays are
+   drawn.
+3. Drive, bail out, finish recovery, return to the vehicle, and activate the
+   door again; confirm re-entry succeeds and the vehicle remains stationary
+   until fresh throttle input.
+4. Confirm `Escape` or `Circle / B`, rather than Activate, performs vehicle exit.
+
+In `/Game/OWS/Levels/OWS_CourseSection`, verify the six menu/style pads named
+Game Animation Widget, View Controls, Read-Me, Level Style Dark, Level Style
+Light, and Level Style Colorful. Aim at each pad and confirm its name appears in
+the bottom-right readout. Press `F` or `Square / X` and confirm its existing
+action runs. Walking over these six pads must not activate them. Then step on at
+least one teleport pad elsewhere in the course and confirm its existing overlap
+activation still works; teleport pads must not require selector Activate.
+
+This selector suite is local/editor coverage. The authority boundary is defined
+in [INTERACTION_TARGETING.md](INTERACTION_TARGETING.md); multiplayer execution
+remains tracked by issue #27.
