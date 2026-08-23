@@ -32,6 +32,8 @@ UOWSStockVehicleInteractionComponent::UOWSStockVehicleInteractionComponent()
 	LeftDoor.DoorId = TEXT("LeftDoor");
 	LeftDoor.RelativeTransform = FTransform(
 		FRotator(0.0f, -90.0f, 0.0f), FVector(15.0f, -125.0f, 55.0f));
+	LeftDoor.ExitRelativeTransform = FTransform(
+		FRotator(0.0f, -90.0f, 0.0f), FVector(15.0f, -170.0f, 55.0f));
 	LeftDoor.OrderedSeatIds = {DriverSeat.SeatId, PassengerSeat.SeatId};
 	DoorDefinitions.Add(LeftDoor);
 
@@ -39,6 +41,8 @@ UOWSStockVehicleInteractionComponent::UOWSStockVehicleInteractionComponent()
 	RightDoor.DoorId = TEXT("RightDoor");
 	RightDoor.RelativeTransform = FTransform(
 		FRotator(0.0f, 90.0f, 0.0f), FVector(15.0f, 125.0f, 55.0f));
+	RightDoor.ExitRelativeTransform = FTransform(
+		FRotator(0.0f, 90.0f, 0.0f), FVector(15.0f, 170.0f, 55.0f));
 	RightDoor.OrderedSeatIds = {PassengerSeat.SeatId, DriverSeat.SeatId};
 	DoorDefinitions.Add(RightDoor);
 }
@@ -244,6 +248,32 @@ bool UOWSStockVehicleInteractionComponent::GetDoorWorldTransform(
 		return true;
 	}
 	return false;
+}
+
+bool UOWSStockVehicleInteractionComponent::GetDoorExitWorldTransform(
+	const FName DoorId, FTransform& OutTransform) const
+{
+	const AActor* OwnerActor = GetOwner();
+	if (const FOWSStockVehicleDoorDefinition* Door = FindDoorDefinition(DoorId);
+		Door != nullptr && OwnerActor != nullptr)
+	{
+		OutTransform = Door->ExitRelativeTransform * OwnerActor->GetActorTransform();
+		return true;
+	}
+	return false;
+}
+
+void UOWSStockVehicleInteractionComponent::GetDoorIds(
+	TArray<FName>& OutDoorIds) const
+{
+	OutDoorIds.Reset(DoorDefinitions.Num());
+	for (const FOWSStockVehicleDoorDefinition& Door : DoorDefinitions)
+	{
+		if (!Door.DoorId.IsNone())
+		{
+			OutDoorIds.Add(Door.DoorId);
+		}
+	}
 }
 
 bool UOWSStockVehicleInteractionComponent::IsControlSeat(const FName SeatId) const

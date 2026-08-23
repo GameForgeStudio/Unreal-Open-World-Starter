@@ -43,6 +43,10 @@ struct FOWSStockVehicleDoorDefinition
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OWS|Vehicle|Occupancy")
 	FTransform RelativeTransform = FTransform::Identity;
 
+	/** Character placement transform after a stopped exit through this door. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OWS|Vehicle|Occupancy")
+	FTransform ExitRelativeTransform = FTransform::Identity;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "OWS|Vehicle|Occupancy")
 	TArray<FName> OrderedSeatIds;
 };
@@ -93,6 +97,8 @@ public:
 	bool ReleaseSeat(AActor* OccupantActor);
 	bool GetSeatWorldTransform(FName SeatId, FTransform& OutTransform) const;
 	bool GetDoorWorldTransform(FName DoorId, FTransform& OutTransform) const;
+	bool GetDoorExitWorldTransform(FName DoorId, FTransform& OutTransform) const;
+	void GetDoorIds(TArray<FName>& OutDoorIds) const;
 	bool IsControlSeat(FName SeatId) const;
 	FName GetSeatForOccupant(const AActor* OccupantActor) const;
 	bool HasControlSeatOccupant() const;
