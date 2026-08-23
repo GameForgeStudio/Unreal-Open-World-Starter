@@ -1,5 +1,9 @@
 #include "OWSVehicleInteractionComponent.h"
 
+#include "Animation/AnimInstance.h"
+#include "Animation/AnimSequence.h"
+#include "Animation/AnimSequenceBase.h"
+#include "Animation/AnimSingleNodeInstance.h"
 #include "Camera/PlayerCameraManager.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/PrimitiveComponent.h"
@@ -22,12 +26,32 @@ namespace
 {
 	// Stable on-screen message key so the prompt refreshes in place each frame.
 	constexpr uint64 GVehiclePromptKey = 715120412ull;
+
+	UAnimSequenceBase* MakeRootLockedRuntimeSequence(
+		UAnimSequenceBase* Source,
+		UObject* Outer)
+	{
+		if (const UAnimSequence* SourceSequence = Cast<UAnimSequence>(Source))
+		{
+			UAnimSequence* RootLockedSequence = DuplicateObject<UAnimSequence>(
+				SourceSequence, Outer);
+			RootLockedSequence->bEnableRootMotion = false;
+			RootLockedSequence->bForceRootLock = true;
+			return RootLockedSequence;
+		}
+		return Source;
+	}
 }
 
 UOWSVehicleInteractionComponent::UOWSVehicleInteractionComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = true;
+
+	RollRightAnimation = TSoftObjectPtr<UAnimSequenceBase>(FSoftObjectPath(
+		TEXT("/GASPALS/Characters/UEFN_Mannequin/Animations/Jump/M_Neutral_Jump_F_Land_Roll_Rfoot.M_Neutral_Jump_F_Land_Roll_Rfoot")));
+	RollLeftAnimation = TSoftObjectPtr<UAnimSequenceBase>(FSoftObjectPath(
+		TEXT("/GASPALS/Characters/UEFN_Mannequin/Animations/Jump/M_Neutral_Jump_F_Land_Roll_Lfoot.M_Neutral_Jump_F_Land_Roll_Lfoot")));
 }
 
 void UOWSVehicleInteractionComponent::BeginPlay()
@@ -37,6 +61,7 @@ void UOWSVehicleInteractionComponent::BeginPlay()
 
 void UOWSVehicleInteractionComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	FinishControlledBailout();
 	if (GEngine)
 	{
 		GEngine->RemoveOnScreenDebugMessage(GVehiclePromptKey);
@@ -87,6 +112,7 @@ void UOWSVehicleInteractionComponent::UpdateInteraction(const float DeltaTime)
 	{
 		return;
 	}
+	UpdateVehicleExitTrace(DeltaTime);
 
 	// Poll raw key state so Enhanced Input mapping contexts can't swallow it.
 	const bool bEnterDown =
@@ -101,6 +127,14 @@ void UOWSVehicleInteractionComponent::UpdateInteraction(const float DeltaTime)
 		ExitHoldElapsed = 0.0f;
 		ACharacter* Character = Cast<ACharacter>(Controller->GetPawn());
 
+		if (bControlledBailoutActive)
+		{
+			UpdateControlledBailout(DeltaTime);
+			ShowPrompt(TEXT("Bailed out!"));
+			bInteractKeyWasDown = bEnterDown;
+			return;
+		}
+
 		// Still tumbling from a bail-out: no entering until back on your feet.
 		if (bRagdollActive)
 		{
@@ -110,15 +144,16 @@ void UOWSVehicleInteractionComponent::UpdateInteraction(const float DeltaTime)
 			return;
 		}
 
-		// Clear the bail-out lock once the player has walked back out of range,
-		// so re-entry requires actually returning to the door.
+		// Clear the bailout lock only after the character leaves the bailout
+		// area. A moving vehicle driving away must not clear the lock by itself.
 		if (ReentryBlockedVehicle && Character)
 		{
 			const float AwayDistance = FVector::Dist(
-				Character->GetActorLocation(), ReentryBlockedVehicle->GetActorLocation());
+				Character->GetActorLocation(), ReentryBlockOrigin);
 			if (AwayDistance > ReentryReleaseDistance)
 			{
 				ReentryBlockedVehicle = nullptr;
+				ReentryBlockOrigin = FVector::ZeroVector;
 			}
 		}
 
@@ -151,11 +186,14 @@ void UOWSVehicleInteractionComponent::UpdateInteraction(const float DeltaTime)
 		SetCameraTarget(OccupiedVehicle, 0.0f);
 	}
 
-	// Occupying a vehicle: exit on tap when stopped, hold when moving.
-	if (GetVehicleSpeedMph() <= ImmediateExitSpeedMph)
+	// Occupying a vehicle: exit on tap when stopped, hold when moving. Keep the
+	// live MPH visible so bailout thresholds can be tested deliberately.
+	const float CurrentVehicleSpeedMph = GetVehicleSpeedMph();
+	if (CurrentVehicleSpeedMph <= ImmediateExitSpeedMph)
 	{
 		ExitHoldElapsed = 0.0f;
-		ShowPrompt(TEXT("Press  [F]  to exit"));
+		ShowPrompt(FString::Printf(
+			TEXT("Speed: %.1f mph\nPress  [F]  to exit"), CurrentVehicleSpeedMph));
 		if (bExitDown && !bInteractKeyWasDown)
 		{
 			TryExitVehicle();
@@ -166,7 +204,8 @@ void UOWSVehicleInteractionComponent::UpdateInteraction(const float DeltaTime)
 		ExitHoldElapsed += DeltaTime;
 		const float Remaining = FMath::Max(0.0f, MovingExitHoldSeconds - ExitHoldElapsed);
 		ShowPrompt(FString::Printf(
-			TEXT("Hold  [F]  to bail out...  %.1fs"), Remaining));
+			TEXT("Speed: %.1f mph\nHold  [F]  to bail out...  %.1fs"),
+			CurrentVehicleSpeedMph, Remaining));
 		if (ExitHoldElapsed >= MovingExitHoldSeconds)
 		{
 			ExitHoldElapsed = 0.0f;
@@ -176,7 +215,9 @@ void UOWSVehicleInteractionComponent::UpdateInteraction(const float DeltaTime)
 	else
 	{
 		ExitHoldElapsed = 0.0f;
-		ShowPrompt(TEXT("Hold  [F]  to bail out while moving"));
+		ShowPrompt(FString::Printf(
+			TEXT("Speed: %.1f mph\nHold  [F]  to bail out while moving"),
+			CurrentVehicleSpeedMph));
 	}
 	bInteractKeyWasDown = bExitDown;
 }
@@ -206,10 +247,10 @@ bool UOWSVehicleInteractionComponent::TryEnterVehicle()
 		Interaction->ReleaseSeat(Character);
 		return false;
 	}
-
 	HomeCharacter = Character;
 	OccupiedVehicle = Vehicle;
 	OccupiedSeatId = SeatId;
+	OccupiedDoorId = DoorId;
 	if (UCharacterMovementComponent* Movement = Character->GetCharacterMovement())
 	{
 		Movement->StopMovementImmediately();
@@ -233,11 +274,13 @@ bool UOWSVehicleInteractionComponent::TryEnterVehicle()
 		HomeCharacter = nullptr;
 		OccupiedVehicle = nullptr;
 		OccupiedSeatId = NAME_None;
+		OccupiedDoorId = NAME_None;
 		return false;
 	}
 
 	Interaction->SetDriverPresent(true);
 	ApplyVehicleInputContext(true);
+	StartVehicleExitTrace(*Character, *Vehicle);
 	// Hand the view to the vehicle so its spring-arm chase camera is used.
 	SetCameraTarget(Vehicle, CameraBlendSeconds);
 	return true;
@@ -259,29 +302,56 @@ bool UOWSVehicleInteractionComponent::TryExitVehicle()
 	// Snapshot the vehicle's motion before we detach; if it is still rolling the
 	// driver bails out into a physics ragdoll instead of stepping to the door.
 	const FVector VehicleVelocity = GetVehicleVelocity();
-	const bool bMovingFast =
-		VehicleVelocity.Size() * 0.0223694f > ImmediateExitSpeedMph;
+	const float VehicleSpeedMph = VehicleVelocity.Size() * 0.0223694f;
+	const bool bMovingFast = VehicleSpeedMph > ImmediateExitSpeedMph;
 
-	// Driver door is on the left; this is the direction the body is thrown.
+	// Moving bailouts use the same configured door that admitted the occupant.
 	FVector DoorDirection = -Vehicle->GetActorRightVector();
+	FTransform ConfiguredExitTransform;
+	if (Interaction->GetDoorExitWorldTransform(OccupiedDoorId, ConfiguredExitTransform))
+	{
+		DoorDirection = ConfiguredExitTransform.GetRotation().GetForwardVector();
+	}
 	DoorDirection.Z = 0.0f;
 	DoorDirection.Normalize();
 
 	Character->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 	if (bMovingFast)
 	{
-		// Move the body clear of the door before physics takes over, otherwise
-		// the ragdoll starts inside the car body and tangles with it.
-		FTransform DoorTransform;
-		const FVector DoorLocation =
-			Interaction->GetDoorWorldTransform(TEXT("LeftDoor"), DoorTransform)
-				? DoorTransform.GetLocation()
-				: Vehicle->GetActorLocation();
-		Character->SetActorLocation(
-			DoorLocation + DoorDirection * BailOutDoorClearance + FVector(0.0f, 0.0f, 40.0f),
-			false, nullptr, ETeleportType::TeleportPhysics);
+		// Authored door exits already clear the vehicle. Ground and collision
+		// validation are safer than manufacturing a sideways/upward launch.
+		if (!PlaceCharacterAtSafeDoorExit(*Character, *Vehicle, *Interaction))
+		{
+			FTransform SeatTransform;
+			if (Interaction->GetSeatWorldTransform(OccupiedSeatId, SeatTransform))
+			{
+				Character->AttachToActor(
+					Vehicle, FAttachmentTransformRules::KeepWorldTransform);
+				Character->SetActorTransform(
+					SeatTransform, false, nullptr, ETeleportType::TeleportPhysics);
+			}
+			return false;
+		}
+		const UCapsuleComponent* ExitCapsule = Character->GetCapsuleComponent();
+		const UPrimitiveComponent* VehicleBody = Interaction->GetVehiclePhysicsBody();
+		if (ExitCapsule && VehicleBody && VehicleBody->OverlapComponent(
+			Character->GetActorLocation(), Character->GetActorQuat(),
+			FCollisionShape::MakeCapsule(
+				ExitCapsule->GetScaledCapsuleRadius(),
+				ExitCapsule->GetScaledCapsuleHalfHeight())))
+		{
+			FTransform SeatTransform;
+			if (Interaction->GetSeatWorldTransform(OccupiedSeatId, SeatTransform))
+			{
+				Character->AttachToActor(
+					Vehicle, FAttachmentTransformRules::KeepWorldTransform);
+				Character->SetActorTransform(
+					SeatTransform, false, nullptr, ETeleportType::TeleportPhysics);
+			}
+			return false;
+		}
 	}
-	else if (!PlaceCharacterAtDriverDoor(*Character, *Vehicle, *Interaction))
+	else if (!PlaceCharacterAtSafeDoorExit(*Character, *Vehicle, *Interaction))
 	{
 		FTransform SeatTransform;
 		if (Interaction->GetSeatWorldTransform(OccupiedSeatId, SeatTransform))
@@ -299,13 +369,39 @@ bool UOWSVehicleInteractionComponent::TryExitVehicle()
 	{
 		return false;
 	}
+	if (bMovingFast)
+	{
+		// The character was just teleported from its hidden seat transform to the
+		// authored door exit. Update its complete component hierarchy before the
+		// camera cut so the first bailout frame is at the door, not the old seat.
+		FRotator BailoutViewRotation = Controller->GetControlRotation();
+		BailoutViewRotation.Yaw = VehicleVelocity.Rotation().Yaw;
+		BailoutViewRotation.Roll = 0.0f;
+		Controller->SetControlRotation(BailoutViewRotation);
+		Character->UpdateComponentTransforms();
+		SetCameraTarget(Character, 0.0f);
+	}
 	Interaction->ReleaseSeat(Character);
 	Interaction->SetDriverPresent(false);
 	if (bMovingFast)
 	{
-		EjectCharacterWithPhysics(*Character, VehicleVelocity, DoorDirection);
-		// Bailing out must not be instantly undoable: make the player walk back.
-		ReentryBlockedVehicle = Vehicle;
+		if (VehicleSpeedMph <= ControlledRollMinimumSpeedMph)
+		{
+			if (UCharacterMovementComponent* Movement = Character->GetCharacterMovement())
+			{
+				Movement->SetMovementMode(MOVE_Walking);
+				Movement->Velocity = VehicleVelocity;
+			}
+		}
+		else
+		{
+			BeginControlledBailout(*Character, VehicleVelocity, DoorDirection);
+		}
+		if (bControlledBailoutActive)
+		{
+			ReentryBlockedVehicle = Vehicle;
+			ReentryBlockOrigin = Character->GetActorLocation();
+		}
 	}
 	else if (UCharacterMovementComponent* Movement = Character->GetCharacterMovement())
 	{
@@ -313,13 +409,581 @@ bool UOWSVehicleInteractionComponent::TryExitVehicle()
 	}
 	OccupiedVehicle = nullptr;
 	OccupiedSeatId = NAME_None;
+	OccupiedDoorId = NAME_None;
 	HomeCharacter = nullptr;
 	ApplyVehicleInputContext(false);
 	// Cut straight to the character when bailing: blending from a camera that is
 	// racing away on the car sweeps the view across the level and reads as a
 	// flicker. A stationary car can afford the smooth blend.
-	SetCameraTarget(Character, bMovingFast ? 0.0f : CameraBlendSeconds);
+	if (!bMovingFast)
+	{
+		SetCameraTarget(Character, CameraBlendSeconds);
+	}
 	return true;
+}
+
+void UOWSVehicleInteractionComponent::BeginControlledBailout(
+	ACharacter& Character,
+	const FVector& VehicleVelocity,
+	const FVector& DoorDirection)
+{
+	USkeletalMeshComponent* Mesh = Character.GetMesh();
+	UCharacterMovementComponent* Movement = Character.GetCharacterMovement();
+	APlayerController* Controller = Cast<APlayerController>(GetOwner());
+	if (!Mesh || !Movement || !Controller)
+	{
+		return;
+	}
+
+	ControlledBailoutCharacter = &Character;
+	bControlledBailoutActive = true;
+	ControlledBailoutElapsed = 0.0f;
+	BailoutTelemetryAccumulator = 0.0f;
+	BailoutStartLocation = Character.GetActorLocation();
+	BailoutPreviousLocation = BailoutStartLocation;
+	BailoutPreviousObservedVelocity = VehicleVelocity;
+	ControlledBailoutSourceVehicle = OccupiedVehicle;
+	bControlledBailoutAddedMoveIgnore = !Controller->IsMoveInputIgnored();
+	if (bControlledBailoutAddedMoveIgnore)
+	{
+		Controller->SetIgnoreMoveInput(true);
+	}
+
+	Character.SetActorRotation(
+		FRotator(0.0f, VehicleVelocity.Rotation().Yaw, 0.0f),
+		ETeleportType::TeleportPhysics);
+	Movement->SetMovementMode(MOVE_Walking);
+	// Classical relative motion: at separation the driver retains the vehicle's
+	// velocity. Authored placement handles clearance, so no fake side/up kick.
+	Movement->Velocity = VehicleVelocity;
+	ControlledRollTargetSpeed = VehicleVelocity.Size2D();
+	ControlledRollKineticEnergyJoules = 0.0;
+	ControlledRollCycleDistanceCm = 0.0f;
+	ControlledRollDistanceIntoCycleCm = 0.0f;
+	ControlledRollPreviousLocation = Character.GetActorLocation();
+	ControlledRollContactCount = 0;
+	ControlledRollIntervalSlidingWorkJoules = 0.0;
+	ControlledRollIntervalAerodynamicWorkJoules = 0.0;
+	ControlledRollIntervalImpactLossJoules = 0.0;
+	ControlledRollIntervalContacts = 0;
+	const double SpeedMetersPerSecond = ControlledRollTargetSpeed * 0.01;
+	ControlledRollKineticEnergyJoules =
+		0.5 * Movement->Mass * FMath::Square(SpeedMetersPerSecond);
+	const UCapsuleComponent* Capsule = Character.GetCapsuleComponent();
+	const float EffectiveRollRadiusCm = Capsule
+		? Capsule->GetScaledCapsuleRadius()
+		: 42.0f;
+	ControlledRollCycleDistanceCm =
+		2.0f * UE_PI * FMath::Max(1.0f, EffectiveRollRadiusCm);
+	if (bLogBailoutTelemetry)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[VIC][BailoutTrace] START phase=%s vehicle_speed=%.2f_mph vehicle_velocity=%s character_location=%s stand_speed=%.2f_cmps movement_mode=%d kinetic_energy=%.2f_J cycle_distance=%.2f_cm sliding_mu=%.3f impact_energy_loss=%.3f"),
+			TEXT("Roll"),
+			VehicleVelocity.Size() * 0.0223694f,
+			*VehicleVelocity.ToCompactString(),
+			*BailoutStartLocation.ToCompactString(),
+			ControlledRollStandSpeed,
+			static_cast<int32>(Movement->MovementMode),
+			ControlledRollKineticEnergyJoules,
+			ControlledRollCycleDistanceCm,
+			ControlledRollSlidingFrictionCoefficient,
+			ControlledRollImpactEnergyLossFraction);
+	}
+
+	const bool bRightSide = FVector::DotProduct(
+		DoorDirection, Character.GetActorRightVector()) >= 0.0f;
+	TSoftObjectPtr<UAnimSequenceBase>& AnimationAsset = bRightSide
+		? RollRightAnimation
+		: RollLeftAnimation;
+	UAnimSequenceBase* Animation = AnimationAsset.LoadSynchronous();
+	if (Animation)
+	{
+		// The bailout roll is full-body and root-locked so animation displacement
+		// cannot overwrite the energy-model velocity or leave the capsule behind.
+		UAnimSequenceBase* ControlledAnimation =
+			MakeRootLockedRuntimeSequence(Animation, this);
+		ActiveControlledAnimation = ControlledAnimation;
+		CachedControlledAnimationMode = static_cast<uint8>(Mesh->GetAnimationMode());
+		CachedControlledAnimClass = Mesh->GetAnimClass();
+		bControlledBailoutOwnsMeshAnimation = true;
+		bControlledBailoutUsesSingleNode = true;
+		CachedRollBrakingDeceleration = Movement->BrakingDecelerationWalking;
+		CachedRollGroundFriction = Movement->GroundFriction;
+		Movement->BrakingDecelerationWalking = 0.0f;
+		Movement->GroundFriction = 0.0f;
+		AddTickPrerequisiteComponent(Movement);
+		bControlledRollTickAfterMovement = true;
+		Mesh->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+		Mesh->PlayAnimation(ControlledAnimation, false);
+		if (UAnimSingleNodeInstance* SingleNode = Mesh->GetSingleNodeInstance())
+		{
+			SingleNode->SetLooping(false);
+			SingleNode->SetPlayRate(1.0f);
+			SingleNode->SetPosition(FMath::Clamp(
+				ControlledRollClipStartSeconds, 0.0f,
+				ControlledAnimation->GetPlayLength()), false);
+			SingleNode->SetPlaying(false);
+		}
+		if (bLogBailoutTelemetry)
+		{
+			UE_LOG(LogTemp, Warning,
+				TEXT("[VIC][BailoutTrace] ANIMATION asset=%s source_length=%.3f_seconds clip_start=%.3f_seconds clip_end=%.3f_seconds play_rate=%.3f looping=%d"),
+				*Animation->GetPathName(), Animation->GetPlayLength(),
+				ControlledRollClipStartSeconds,
+				ControlledRollClipEndSeconds,
+				1.0f, 1);
+			for (const FAnimNotifyEvent& NotifyEvent : Animation->Notifies)
+			{
+				UE_LOG(LogTemp, Warning,
+					TEXT("[VIC][BailoutTrace] ANIMATION_NOTIFY name=%s time=%.3f duration=%.3f"),
+					*NotifyEvent.NotifyName.ToString(), NotifyEvent.GetTime(),
+					NotifyEvent.GetDuration());
+			}
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[VIC] Controlled bailout animation could not be loaded for %s."),
+			*Character.GetName());
+	}
+}
+
+void UOWSVehicleInteractionComponent::UpdateControlledBailout(const float DeltaTime)
+{
+	ACharacter* Character = ControlledBailoutCharacter.Get();
+	if (!Character)
+	{
+		FinishControlledBailout();
+		return;
+	}
+
+	ControlledBailoutElapsed += DeltaTime;
+	BailoutTelemetryAccumulator += DeltaTime;
+	if (bLogBailoutTelemetry && BailoutTelemetryAccumulator >= 0.1f)
+	{
+		UCharacterMovementComponent* Movement = Character->GetCharacterMovement();
+		APlayerController* Controller = Cast<APlayerController>(GetOwner());
+		const FVector CurrentLocation = Character->GetActorLocation();
+		const FVector ObservedVelocity =
+			(CurrentLocation - BailoutPreviousLocation) / BailoutTelemetryAccumulator;
+		const FVector ObservedAcceleration =
+			(ObservedVelocity - BailoutPreviousObservedVelocity) / BailoutTelemetryAccumulator;
+		const float DistanceFromStart = FVector::Dist2D(CurrentLocation, BailoutStartLocation);
+		const float DistanceFromVehicle = ControlledBailoutSourceVehicle
+			? FVector::Dist2D(CurrentLocation, ControlledBailoutSourceVehicle->GetActorLocation())
+			: -1.0f;
+		USkeletalMeshComponent* Mesh = Character->GetMesh();
+		UAnimSingleNodeInstance* SingleNode = Mesh ? Mesh->GetSingleNodeInstance() : nullptr;
+		const FVector CameraLocation = Controller && Controller->PlayerCameraManager
+			? Controller->PlayerCameraManager->GetCameraLocation()
+			: FVector::ZeroVector;
+		UE_LOG(LogTemp, Warning,
+			TEXT("[VIC][BailoutTrace] SAMPLE phase=%s elapsed=%.3f location=%s movement_velocity=%s observed_velocity=%s observed_acceleration=%s speed=%.2f_cmps target_speed=%.2f_cmps kinetic_energy=%.2f_J sliding_work=%.2f_J aerodynamic_work=%.2f_J impact_loss=%.2f_J interval_contacts=%d total_contacts=%d cycle_progress=%.3f distance_from_start=%.2f_cm distance_from_vehicle=%.2f_cm grounded=%d movement_mode=%d root_motion=%d animation=%s animation_time=%.3f camera_location=%s camera_distance=%.2f_cm view_target=%s steer=%.3f"),
+			TEXT("Roll"),
+			ControlledBailoutElapsed,
+			*CurrentLocation.ToCompactString(),
+			Movement ? *Movement->Velocity.ToCompactString() : TEXT("none"),
+			*ObservedVelocity.ToCompactString(),
+			*ObservedAcceleration.ToCompactString(),
+			Movement ? Movement->Velocity.Size2D() : -1.0f,
+			ControlledRollTargetSpeed,
+			ControlledRollKineticEnergyJoules,
+			ControlledRollIntervalSlidingWorkJoules,
+			ControlledRollIntervalAerodynamicWorkJoules,
+			ControlledRollIntervalImpactLossJoules,
+			ControlledRollIntervalContacts,
+			ControlledRollContactCount,
+			ControlledRollCycleDistanceCm > KINDA_SMALL_NUMBER
+				? ControlledRollDistanceIntoCycleCm / ControlledRollCycleDistanceCm
+				: 0.0f,
+			DistanceFromStart,
+			DistanceFromVehicle,
+			Movement && Movement->IsMovingOnGround() ? 1 : 0,
+			Movement ? static_cast<int32>(Movement->MovementMode) : -1,
+			Character->IsPlayingRootMotion() ? 1 : 0,
+			SingleNode && SingleNode->GetCurrentAsset()
+				? *SingleNode->GetCurrentAsset()->GetName() : TEXT("none"),
+			SingleNode ? SingleNode->GetCurrentTime() : -1.0f,
+			*CameraLocation.ToCompactString(),
+			FVector::Dist(CameraLocation, CurrentLocation),
+			Controller && Controller->GetViewTarget()
+				? *Controller->GetViewTarget()->GetName() : TEXT("none"),
+			Controller ? Controller->GetInputAnalogKeyState(EKeys::Gamepad_LeftX) : 0.0f);
+		BailoutPreviousLocation = CurrentLocation;
+		BailoutPreviousObservedVelocity = ObservedVelocity;
+		BailoutTelemetryAccumulator = 0.0f;
+		ControlledRollIntervalSlidingWorkJoules = 0.0;
+		ControlledRollIntervalAerodynamicWorkJoules = 0.0;
+		ControlledRollIntervalImpactLossJoules = 0.0;
+		ControlledRollIntervalContacts = 0;
+	}
+	if (bControlledBailoutUsesSingleNode)
+	{
+		UCharacterMovementComponent* Movement = Character->GetCharacterMovement();
+		APlayerController* Controller = Cast<APlayerController>(GetOwner());
+		if (!Movement || !Controller)
+		{
+			FinishControlledBailout();
+			return;
+		}
+
+		// Gait logic restores ordinary walking braking every frame. A controlled
+		// roll owns its speed curve, so neutralize those locomotion values after
+		// CharacterMovement ticks and drive from the retained bailout speed rather
+		// than compounding two unrelated braking systems.
+		Movement->BrakingDecelerationWalking = 0.0f;
+		Movement->GroundFriction = 0.0f;
+
+		FVector HorizontalVelocity = Movement->Velocity;
+		HorizontalVelocity.Z = 0.0f;
+		const float HorizontalSpeed = HorizontalVelocity.Size();
+		if (HorizontalSpeed > KINDA_SMALL_NUMBER)
+		{
+			const float SteeringInput = Controller->GetInputAnalogKeyState(EKeys::Gamepad_LeftX);
+			const float SteeringAngle =
+				SteeringInput * ControlledRollSteeringDegreesPerSecond * DeltaTime;
+			const FVector SteeredVelocity = HorizontalVelocity.RotateAngleAxis(
+				SteeringAngle, FVector::UpVector);
+			const FVector CurrentLocation = Character->GetActorLocation();
+			const float TravelDistanceCm = FVector::Dist2D(
+				CurrentLocation, ControlledRollPreviousLocation);
+			ControlledRollPreviousLocation = CurrentLocation;
+			const double TravelDistanceMeters = TravelDistanceCm * 0.01;
+			const double MassKilograms = FMath::Max(1.0f, Movement->Mass);
+			const double SpeedMetersPerSecond = ControlledRollTargetSpeed * 0.01;
+			const double SlidingForceNewtons =
+				ControlledRollSlidingFrictionCoefficient *
+				MassKilograms * 9.80665;
+			const double AerodynamicForceNewtons =
+				0.5 * ControlledRollAirDensityKgPerCubicMeter *
+				ControlledRollAerodynamicDragCoefficient *
+				ControlledRollFrontalAreaSquareMeters *
+				FMath::Square(SpeedMetersPerSecond);
+			const double StandSpeedMetersPerSecond =
+				ControlledRollStandSpeed * 0.01;
+			const double StandEnergyJoules =
+				0.5 * MassKilograms * FMath::Square(StandSpeedMetersPerSecond);
+			const double SlidingWorkJoules = FMath::Min(
+				FMath::Max(0.0, ControlledRollKineticEnergyJoules - StandEnergyJoules),
+				SlidingForceNewtons * TravelDistanceMeters);
+			ControlledRollKineticEnergyJoules -= SlidingWorkJoules;
+			const double AerodynamicWorkJoules = FMath::Min(
+				FMath::Max(0.0, ControlledRollKineticEnergyJoules - StandEnergyJoules),
+				AerodynamicForceNewtons * TravelDistanceMeters);
+			ControlledRollKineticEnergyJoules -= AerodynamicWorkJoules;
+			ControlledRollIntervalSlidingWorkJoules += SlidingWorkJoules;
+			ControlledRollIntervalAerodynamicWorkJoules += AerodynamicWorkJoules;
+
+			ControlledRollDistanceIntoCycleCm += TravelDistanceCm;
+			while (ControlledRollCycleDistanceCm > KINDA_SMALL_NUMBER &&
+				ControlledRollDistanceIntoCycleCm >= ControlledRollCycleDistanceCm &&
+				ControlledRollKineticEnergyJoules > StandEnergyJoules)
+			{
+				ControlledRollDistanceIntoCycleCm -= ControlledRollCycleDistanceCm;
+				const double ImpactLossJoules = FMath::Min(
+					ControlledRollKineticEnergyJoules - StandEnergyJoules,
+					ControlledRollKineticEnergyJoules *
+					ControlledRollImpactEnergyLossFraction);
+				ControlledRollKineticEnergyJoules -= ImpactLossJoules;
+				ControlledRollIntervalImpactLossJoules += ImpactLossJoules;
+				++ControlledRollContactCount;
+				++ControlledRollIntervalContacts;
+				if (bLogBailoutTelemetry)
+				{
+					UE_LOG(LogTemp, Warning,
+						TEXT("[VIC][BailoutTrace] CONTACT index=%d impact_loss=%.2f_J remaining_energy=%.2f_J location=%s"),
+						ControlledRollContactCount,
+						ImpactLossJoules,
+						ControlledRollKineticEnergyJoules,
+						*CurrentLocation.ToCompactString());
+				}
+			}
+
+			ControlledRollKineticEnergyJoules = FMath::Max(
+				StandEnergyJoules, ControlledRollKineticEnergyJoules);
+			ControlledRollTargetSpeed = static_cast<float>(
+				FMath::Sqrt(2.0 * ControlledRollKineticEnergyJoules /
+					MassKilograms) * 100.0);
+			const FVector NewHorizontalVelocity =
+				SteeredVelocity.GetSafeNormal() * ControlledRollTargetSpeed;
+			Movement->Velocity.X = NewHorizontalVelocity.X;
+			Movement->Velocity.Y = NewHorizontalVelocity.Y;
+			Character->SetActorRotation(
+				FRotator(0.0f, SteeredVelocity.Rotation().Yaw, 0.0f),
+				ETeleportType::None);
+
+			if (USkeletalMeshComponent* Mesh = Character->GetMesh())
+			{
+				if (UAnimSingleNodeInstance* SingleNode = Mesh->GetSingleNodeInstance())
+				{
+					const float CycleAlpha = ControlledRollCycleDistanceCm > KINDA_SMALL_NUMBER
+						? ControlledRollDistanceIntoCycleCm / ControlledRollCycleDistanceCm
+						: 0.0f;
+					SingleNode->SetPosition(FMath::Lerp(
+						ControlledRollClipStartSeconds,
+						ControlledRollClipEndSeconds,
+						CycleAlpha), false);
+					SingleNode->SetPlaying(false);
+				}
+			}
+		}
+
+		const bool bStoppedByCollision = Movement->IsMovingOnGround() &&
+			HorizontalSpeed <= 1.0f;
+		if (Movement->IsMovingOnGround() &&
+			(ControlledRollTargetSpeed <= ControlledRollStandSpeed ||
+				bStoppedByCollision))
+		{
+			if (bLogBailoutTelemetry)
+			{
+				UE_LOG(LogTemp, Warning,
+					TEXT("[VIC][BailoutTrace] TRANSITION Roll->Locomotion speed=%.2f_cmps location=%s distance_from_start=%.2f_cm"),
+					Movement->Velocity.Size2D(),
+					*Character->GetActorLocation().ToCompactString(),
+					FVector::Dist2D(Character->GetActorLocation(), BailoutStartLocation));
+			}
+			FinishControlledBailout();
+		}
+		return;
+	}
+}
+
+float UOWSVehicleInteractionComponent::CalculateControlledRollContinuousDeceleration(
+	const UCharacterMovementComponent& Movement,
+	const float SpeedCmPerSecond) const
+{
+	constexpr float StandardGravityMetersPerSecondSquared = 9.80665f;
+	const float SpeedMetersPerSecond = SpeedCmPerSecond * 0.01f;
+	const float SlidingDecelerationMetersPerSecondSquared =
+		ControlledRollSlidingFrictionCoefficient *
+		StandardGravityMetersPerSecondSquared;
+	const float AerodynamicForceNewtons =
+		0.5f * ControlledRollAirDensityKgPerCubicMeter *
+		ControlledRollAerodynamicDragCoefficient *
+		ControlledRollFrontalAreaSquareMeters *
+		FMath::Square(SpeedMetersPerSecond);
+	const float AerodynamicDecelerationMetersPerSecondSquared =
+		AerodynamicForceNewtons / FMath::Max(1.0f, Movement.Mass);
+	return (SlidingDecelerationMetersPerSecondSquared +
+		AerodynamicDecelerationMetersPerSecondSquared) * 100.0f;
+}
+
+void UOWSVehicleInteractionComponent::FinishControlledBailout()
+{
+	ACharacter* Character = ControlledBailoutCharacter.Get();
+	if (bLogBailoutTelemetry && Character)
+	{
+		const UCharacterMovementComponent* Movement = Character->GetCharacterMovement();
+		UE_LOG(LogTemp, Warning,
+			TEXT("[VIC][BailoutTrace] FINISH phase=Roll elapsed=%.3f location=%s movement_velocity=%s distance_from_start=%.2f_cm distance_from_vehicle=%.2f_cm"),
+			ControlledBailoutElapsed,
+			*Character->GetActorLocation().ToCompactString(),
+			Movement ? *Movement->Velocity.ToCompactString() : TEXT("none"),
+			FVector::Dist2D(Character->GetActorLocation(), BailoutStartLocation),
+			ControlledBailoutSourceVehicle
+				? FVector::Dist2D(
+					Character->GetActorLocation(), ControlledBailoutSourceVehicle->GetActorLocation())
+				: -1.0f);
+	}
+	if (Character)
+	{
+		if (bControlledRollTickAfterMovement)
+		{
+			if (UCharacterMovementComponent* Movement = Character->GetCharacterMovement())
+			{
+				RemoveTickPrerequisiteComponent(Movement);
+				Movement->BrakingDecelerationWalking = CachedRollBrakingDeceleration;
+				Movement->GroundFriction = CachedRollGroundFriction;
+			}
+		}
+		else if (bControlledBailoutUsesSingleNode)
+		{
+			if (UCharacterMovementComponent* Movement = Character->GetCharacterMovement())
+			{
+				Movement->BrakingDecelerationWalking = CachedRollBrakingDeceleration;
+				Movement->GroundFriction = CachedRollGroundFriction;
+			}
+		}
+		if (USkeletalMeshComponent* Mesh = Character->GetMesh())
+		{
+			if (bControlledBailoutOwnsMeshAnimation)
+			{
+				if (CachedControlledAnimClass)
+				{
+					Mesh->SetAnimInstanceClass(CachedControlledAnimClass);
+				}
+				else
+				{
+					Mesh->SetAnimationMode(static_cast<EAnimationMode::Type>(
+						CachedControlledAnimationMode));
+				}
+			}
+			else if (UAnimInstance* AnimInstance = Mesh->GetAnimInstance())
+			{
+				AnimInstance->StopSlotAnimation(0.12f, TEXT("DefaultSlot"));
+			}
+		}
+	}
+	if (bControlledBailoutAddedMoveIgnore)
+	{
+		if (APlayerController* Controller = Cast<APlayerController>(GetOwner()))
+		{
+			Controller->SetIgnoreMoveInput(false);
+		}
+	}
+	// The player has completed the authored recovery and regained control. A
+	// bailout must not permanently blacklist a nearby vehicle merely because a
+	// low-speed exit did not carry the character beyond an arbitrary radius.
+	ReentryBlockedVehicle = nullptr;
+	ReentryBlockOrigin = FVector::ZeroVector;
+
+	bControlledBailoutActive = false;
+	bControlledBailoutAddedMoveIgnore = false;
+	bControlledBailoutUsesSingleNode = false;
+	bControlledBailoutOwnsMeshAnimation = false;
+	bControlledRollTickAfterMovement = false;
+	ControlledBailoutElapsed = 0.0f;
+	CachedRollBrakingDeceleration = 0.0f;
+	CachedRollGroundFriction = 0.0f;
+	ControlledRollTargetSpeed = 0.0f;
+	ControlledRollKineticEnergyJoules = 0.0;
+	ControlledRollCycleDistanceCm = 0.0f;
+	ControlledRollDistanceIntoCycleCm = 0.0f;
+	ControlledRollPreviousLocation = FVector::ZeroVector;
+	ControlledRollContactCount = 0;
+	ControlledRollIntervalSlidingWorkJoules = 0.0;
+	ControlledRollIntervalAerodynamicWorkJoules = 0.0;
+	ControlledRollIntervalImpactLossJoules = 0.0;
+	ControlledRollIntervalContacts = 0;
+	BailoutTelemetryAccumulator = 0.0f;
+	BailoutStartLocation = FVector::ZeroVector;
+	BailoutPreviousLocation = FVector::ZeroVector;
+	BailoutPreviousObservedVelocity = FVector::ZeroVector;
+	ControlledBailoutSourceVehicle = nullptr;
+	CachedControlledAnimationMode = 0;
+	CachedControlledAnimClass = nullptr;
+	ActiveControlledAnimation = nullptr;
+	ControlledBailoutCharacter = nullptr;
+}
+
+void UOWSVehicleInteractionComponent::StartVehicleExitTrace(
+	ACharacter& Character,
+	APawn& Vehicle)
+{
+	if (!bLogBailoutTelemetry)
+	{
+		return;
+	}
+	bVehicleExitTraceActive = true;
+	VehicleExitTraceElapsed = 0.0f;
+	VehicleExitTraceAccumulator = 0.0f;
+	VehicleExitTraceCharacter = &Character;
+	VehicleExitTraceVehicle = &Vehicle;
+	VehicleExitTracePreviousLocation = Character.GetActorLocation();
+	VehicleExitTracePreviousVelocity = Vehicle.GetVelocity();
+
+	const UCharacterMovementComponent* Movement = Character.GetCharacterMovement();
+	const UOWSStockVehicleInteractionComponent* Interaction =
+		Vehicle.FindComponentByClass<UOWSStockVehicleInteractionComponent>();
+	const UPrimitiveComponent* VehicleBody = Interaction
+		? Interaction->GetVehiclePhysicsBody()
+		: nullptr;
+	UE_LOG(LogTemp, Warning,
+		TEXT("[VIC][FullTrace] ENTRY character_mass=%.2f_kg vehicle_mass=%.2f_kg character_location=%s vehicle_location=%s vehicle_velocity=%s braking=%.2f_cmps2 ground_friction=%.3f falling_lateral_friction=%.3f"),
+		Movement ? Movement->Mass : -1.0f,
+		VehicleBody ? VehicleBody->GetMass() : -1.0f,
+		*Character.GetActorLocation().ToCompactString(),
+		*Vehicle.GetActorLocation().ToCompactString(),
+		*(VehicleBody ? VehicleBody->GetPhysicsLinearVelocity() : Vehicle.GetVelocity()).ToCompactString(),
+		Movement ? Movement->BrakingDecelerationWalking : -1.0f,
+		Movement ? Movement->GroundFriction : -1.0f,
+		Movement ? Movement->FallingLateralFriction : -1.0f);
+}
+
+void UOWSVehicleInteractionComponent::UpdateVehicleExitTrace(const float DeltaTime)
+{
+	ACharacter* Character = VehicleExitTraceCharacter.Get();
+	APawn* Vehicle = VehicleExitTraceVehicle.Get();
+	if (!bVehicleExitTraceActive || !bLogBailoutTelemetry || !Character || !Vehicle)
+	{
+		return;
+	}
+
+	VehicleExitTraceElapsed += DeltaTime;
+	VehicleExitTraceAccumulator += DeltaTime;
+	if (VehicleExitTraceAccumulator < 0.1f)
+	{
+		return;
+	}
+
+	UCharacterMovementComponent* Movement = Character->GetCharacterMovement();
+	UOWSStockVehicleInteractionComponent* Interaction =
+		Vehicle->FindComponentByClass<UOWSStockVehicleInteractionComponent>();
+	UPrimitiveComponent* VehicleBody = Interaction
+		? Interaction->GetVehiclePhysicsBody()
+		: nullptr;
+	APlayerController* Controller = Cast<APlayerController>(GetOwner());
+	const FVector CharacterLocation = Character->GetActorLocation();
+	const FVector ObservedVelocity =
+		(CharacterLocation - VehicleExitTracePreviousLocation) /
+		VehicleExitTraceAccumulator;
+	const FVector ObservedAcceleration =
+		(ObservedVelocity - VehicleExitTracePreviousVelocity) /
+		VehicleExitTraceAccumulator;
+	const FVector VehicleVelocity = VehicleBody
+		? VehicleBody->GetPhysicsLinearVelocity()
+		: Vehicle->GetVelocity();
+	const float CharacterSpeed = Movement ? Movement->Velocity.Size2D() : -1.0f;
+	const bool bGrounded = Movement && Movement->IsMovingOnGround();
+	const float ActiveRollDeceleration = bControlledBailoutUsesSingleNode && Movement
+		? CalculateControlledRollContinuousDeceleration(*Movement, CharacterSpeed)
+		: 0.0f;
+	const TCHAR* Phase = OccupiedVehicle
+		? TEXT("Vehicle")
+		: (bControlledBailoutActive ? TEXT("Roll") : TEXT("PostControl"));
+
+	UE_LOG(LogTemp, Warning,
+		TEXT("[VIC][FullTrace] SAMPLE phase=%s elapsed=%.3f character_mass=%.2f_kg vehicle_mass=%.2f_kg character_location=%s vehicle_location=%s character_movement_velocity=%s character_observed_velocity=%s character_observed_acceleration=%s vehicle_velocity=%s character_speed=%.2f_cmps vehicle_speed=%.2f_cmps distance=%.2f_cm grounded=%d movement_mode=%d root_motion=%d braking=%.2f_cmps2 ground_friction=%.3f roll_deceleration=%.2f_cmps2 steer=%.3f"),
+		Phase,
+		VehicleExitTraceElapsed,
+		Movement ? Movement->Mass : -1.0f,
+		VehicleBody ? VehicleBody->GetMass() : -1.0f,
+		*CharacterLocation.ToCompactString(),
+		*Vehicle->GetActorLocation().ToCompactString(),
+		Movement ? *Movement->Velocity.ToCompactString() : TEXT("none"),
+		*ObservedVelocity.ToCompactString(),
+		*ObservedAcceleration.ToCompactString(),
+		*VehicleVelocity.ToCompactString(),
+		CharacterSpeed,
+		VehicleVelocity.Size(),
+		FVector::Dist2D(CharacterLocation, Vehicle->GetActorLocation()),
+		bGrounded ? 1 : 0,
+		Movement ? static_cast<int32>(Movement->MovementMode) : -1,
+		Character->IsPlayingRootMotion() ? 1 : 0,
+		Movement ? Movement->BrakingDecelerationWalking : -1.0f,
+		Movement ? Movement->GroundFriction : -1.0f,
+		ActiveRollDeceleration,
+		Controller ? Controller->GetInputAnalogKeyState(EKeys::Gamepad_LeftX) : 0.0f);
+
+	VehicleExitTracePreviousLocation = CharacterLocation;
+	VehicleExitTracePreviousVelocity = ObservedVelocity;
+	VehicleExitTraceAccumulator = 0.0f;
+
+	if (!OccupiedVehicle && !bControlledBailoutActive && !bRagdollActive &&
+		bGrounded && CharacterSpeed <= 1.0f)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[VIC][FullTrace] STOP elapsed=%.3f character_location=%s vehicle_location=%s distance=%.2f_cm"),
+			VehicleExitTraceElapsed,
+			*CharacterLocation.ToCompactString(),
+			*Vehicle->GetActorLocation().ToCompactString(),
+			FVector::Dist2D(CharacterLocation, Vehicle->GetActorLocation()));
+		bVehicleExitTraceActive = false;
+		VehicleExitTraceCharacter = nullptr;
+		VehicleExitTraceVehicle = nullptr;
+	}
 }
 
 APawn* UOWSVehicleInteractionComponent::FindEnterableVehicle(
@@ -385,69 +1049,110 @@ APawn* UOWSVehicleInteractionComponent::FindEnterableVehicle(
 	return BestVehicle;
 }
 
-bool UOWSVehicleInteractionComponent::PlaceCharacterAtDriverDoor(
+bool UOWSVehicleInteractionComponent::PlaceCharacterAtDoorExit(
 	ACharacter& Character,
 	const APawn& Vehicle,
-	const UOWSStockVehicleInteractionComponent& Interaction) const
+	const UOWSStockVehicleInteractionComponent& Interaction,
+	const FName DoorId) const
 {
 	UWorld* World = GetWorld();
 	UCapsuleComponent* Capsule = Character.GetCapsuleComponent();
-	if (!World || !Capsule)
+	FTransform ExitTransform;
+	if (!World || !Capsule ||
+		!Interaction.GetDoorExitWorldTransform(DoorId, ExitTransform))
 	{
 		return false;
 	}
 
-	FVector Right = Vehicle.GetActorRightVector();
-	Right.Z = 0.0f;
-	Right.Normalize();
-	FVector Fwd = Vehicle.GetActorForwardVector();
-	Fwd.Z = 0.0f;
-	Fwd.Normalize();
-
-	// Base points beside each door (left = driver preferred), plus front/back.
-	// A little upward bias keeps the capsule test off the ground.
-	const FVector Up = FVector(0.0f, 0.0f, 20.0f);
-	FTransform DoorT;
-	const FVector LeftBase = (Interaction.GetDoorWorldTransform(TEXT("LeftDoor"), DoorT)
-		? DoorT.GetLocation() : Vehicle.GetActorLocation()) - Right * DriverDoorExitPadding + Up;
-	const FVector RightBase = (Interaction.GetDoorWorldTransform(TEXT("RightDoor"), DoorT)
-		? DoorT.GetLocation() : Vehicle.GetActorLocation()) + Right * DriverDoorExitPadding + Up;
-
-	const FVector Candidates[] = {
-		LeftBase,
-		LeftBase + Fwd * 120.0f,
-		LeftBase - Fwd * 120.0f,
-		LeftBase - Right * 90.0f,
-		RightBase,
-		RightBase + Fwd * 120.0f,
-		RightBase - Fwd * 120.0f,
-		RightBase + Right * 90.0f,
-		Vehicle.GetActorLocation() + Fwd * 260.0f + Up,
-		Vehicle.GetActorLocation() - Fwd * 260.0f + Up
-	};
-	const FRotator ExitRotation(0.0f, Vehicle.GetActorRotation().Yaw, 0.0f);
-	FCollisionQueryParams Params(SCENE_QUERY_STAT(OWSDriverDoorExit), false, &Character);
+	const float CapsuleRadius = FMath::Max(1.0f, Capsule->GetScaledCapsuleRadius() - 2.0f);
+	const float CapsuleHalfHeight = FMath::Max(
+		CapsuleRadius, Capsule->GetScaledCapsuleHalfHeight() - 2.0f);
+	const FVector CapsuleAxis = ExitTransform.GetRotation().GetAxisZ();
+	const float VerticalCapsuleExtent = CapsuleRadius +
+		(Capsule->GetScaledCapsuleHalfHeight() - CapsuleRadius) *
+		FMath::Abs(CapsuleAxis.Z);
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(OWSDoorExit), false, &Character);
 	Params.AddIgnoredActor(&Vehicle);
-	for (const FVector& Candidate : Candidates)
+	FHitResult SupportHit;
+	const FVector SupportTraceStart =
+		ExitTransform.GetLocation() + FVector(0.0f, 0.0f, 500.0f);
+	const FVector SupportTraceEnd =
+		ExitTransform.GetLocation() - FVector(0.0f, 0.0f, 1000.0f);
+	const bool bHasWalkableSupport = World->LineTraceSingleByChannel(
+		SupportHit, SupportTraceStart, SupportTraceEnd, ECC_Pawn, Params) &&
+		SupportHit.ImpactNormal.Z >= 0.7f;
+	if (!bHasWalkableSupport)
 	{
-		if (!World->OverlapAnyTestByChannel(
-			Candidate, FQuat::Identity, ECC_Pawn,
-			FCollisionShape::MakeCapsule(
-				Capsule->GetScaledCapsuleRadius(), Capsule->GetScaledCapsuleHalfHeight()),
-			Params))
+		return false;
+	}
+	FHitResult VehicleSupportHit;
+	const FVector VehicleSupportTraceStart =
+		Vehicle.GetActorLocation() + FVector(0.0f, 0.0f, 500.0f);
+	const FVector VehicleSupportTraceEnd =
+		Vehicle.GetActorLocation() - FVector(0.0f, 0.0f, 1000.0f);
+	const bool bVehicleHasWalkableSupport = World->LineTraceSingleByChannel(
+		VehicleSupportHit, VehicleSupportTraceStart, VehicleSupportTraceEnd,
+		ECC_Pawn, Params) && VehicleSupportHit.ImpactNormal.Z >= 0.7f;
+	const float MaximumSupportHeightDelta =
+		(Character.GetCharacterMovement()
+			? Character.GetCharacterMovement()->MaxStepHeight
+			: 45.0f) + 5.0f;
+	if (!bVehicleHasWalkableSupport ||
+		FMath::Abs(SupportHit.ImpactPoint.Z - VehicleSupportHit.ImpactPoint.Z) >
+			MaximumSupportHeightDelta)
+	{
+		return false;
+	}
+	FVector GroundedExitLocation = ExitTransform.GetLocation();
+	GroundedExitLocation.Z = SupportHit.ImpactPoint.Z + VerticalCapsuleExtent + 2.0f;
+	ExitTransform.SetLocation(GroundedExitLocation);
+
+	TArray<FOverlapResult> Overlaps;
+	World->OverlapMultiByChannel(
+		Overlaps, ExitTransform.GetLocation(), ExitTransform.GetRotation(), ECC_Pawn,
+		FCollisionShape::MakeCapsule(CapsuleRadius, CapsuleHalfHeight), Params);
+	const float CapsuleBottomZ = ExitTransform.GetLocation().Z - VerticalCapsuleExtent;
+	for (const FOverlapResult& Overlap : Overlaps)
+	{
+		const bool bValidSupportContact =
+			Overlap.GetComponent() == SupportHit.GetComponent() &&
+			CapsuleBottomZ >= SupportHit.ImpactPoint.Z - 2.0f;
+		if (Overlap.bBlockingHit && !bValidSupportContact)
 		{
-			Character.SetActorLocationAndRotation(
-				Candidate, ExitRotation, false, nullptr, ETeleportType::TeleportPhysics);
+			return false;
+		}
+	}
+
+	Character.SetActorTransform(
+		ExitTransform, false, nullptr, ETeleportType::TeleportPhysics);
+	return true;
+}
+
+bool UOWSVehicleInteractionComponent::PlaceCharacterAtSafeDoorExit(
+	ACharacter& Character,
+	const APawn& Vehicle,
+	const UOWSStockVehicleInteractionComponent& Interaction) const
+{
+	if (!OccupiedDoorId.IsNone() &&
+		PlaceCharacterAtDoorExit(Character, Vehicle, Interaction, OccupiedDoorId))
+	{
+		return true;
+	}
+
+	TArray<FName> DoorIds;
+	Interaction.GetDoorIds(DoorIds);
+	for (const FName DoorId : DoorIds)
+	{
+		if (DoorId != OccupiedDoorId &&
+			PlaceCharacterAtDoorExit(Character, Vehicle, Interaction, DoorId))
+		{
 			return true;
 		}
 	}
 
-	// Everything is blocked (e.g. cars parked bumper to bumper). Don't trap the
-	// player in the vehicle — drop them onto the roof as a last resort.
-	Character.SetActorLocationAndRotation(
-		Vehicle.GetActorLocation() + FVector(0.0f, 0.0f, 160.0f),
-		ExitRotation, false, nullptr, ETeleportType::TeleportPhysics);
-	return true;
+	// Every configured door exit is blocked. Reject the exit so possession and
+	// occupancy remain unchanged instead of inventing an unsafe placement.
+	return false;
 }
 
 void UOWSVehicleInteractionComponent::SetCameraTarget(

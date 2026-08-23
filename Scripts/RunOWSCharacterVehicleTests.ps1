@@ -100,7 +100,9 @@ try {
     $Report = Get-Content -Raw -LiteralPath $ReportFile | ConvertFrom-Json
     $Tests = @($Report.tests | Where-Object { $_.fullTestPath -like 'OWS.CharacterVehicle.*' })
     $ExpectedTests = @(
+        'OWS.CharacterVehicle.ConstrainedStoppedExitPlacement',
         'OWS.CharacterVehicle.MovingBailoutRecovery',
+        'OWS.CharacterVehicle.RepresentativeStoppedExit',
         'OWS.CharacterVehicle.StoppedExitRepeatedCycles'
     )
     foreach ($ExpectedTest in $ExpectedTests) {
@@ -115,7 +117,7 @@ try {
         throw "Character/vehicle automation failed: process exit code $UnrealExitCode; failed tests $($FailedTests.Count)."
     }
 
-    [Console]::WriteLine('[OWS character/vehicle] PASS: repeated stopped cycles and moving bailout/recovery passed.')
+    [Console]::WriteLine('[OWS character/vehicle] PASS: repeated, representative, constrained, and moving bailout/recovery tests passed.')
     $ExitCode = 0
 }
 catch {

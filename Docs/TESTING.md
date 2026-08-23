@@ -50,15 +50,22 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\Scripts\RunOWSCharacterVeh
 The successful result ends with:
 
 ```text
-[OWS character/vehicle] PASS: repeated stopped cycles and moving bailout/recovery passed.
+[OWS character/vehicle] PASS: repeated, representative, constrained, and moving bailout/recovery tests passed.
 ```
 
 The suite verifies:
 
 - Five consecutive enter/stopped-exit cycles using the same OWS character and a canonical vehicle.
-- Possession, character visibility and collision, attachment, control-seat occupancy, input-context activation, and camera target on every transition.
-- Moving bailout begins outside the vehicle with a physics ragdoll and releases possession, seat state, and vehicle input.
-- The character recovers to finite, collidable, controllable OWS movement within eight seconds.
-- Immediate re-entry after bailout is rejected and re-entry succeeds after leaving the documented release radius.
+- Stopped exits use the authored exit transform for the entered door across all 14 vehicles in `OWS_CombinedDemo`.
+- The bus exposes separate front and rear curb-side door/exit transforms; the other included vehicles expose vehicle-sized left/right door/exit transforms.
+- Blocking the entered door selects another authored door; blocking every authored door rejects the exit without changing possession or occupancy; removing blockers allows a retry.
+- Possession, character identity, visibility, capsule collision, attachment, animation instance, movement state, control-seat occupancy, input-context activation, and camera target on every transition.
+- Moving bailouts cover ordinary locomotion recovery at 600 cm/s and controlled-roll behavior at 1200 and 3000 cm/s. Each begins outside the vehicle body and releases seat state and vehicle input without entering ragdoll physics.
+- At 5–15 mph, the bailout hands directly to ordinary locomotion without forcing a full-body recovery animation. Above 15 mph, the root-locked full-body roll inherits the vehicle's velocity without artificial sideways or upward launch, loops until grounded horizontal speed falls to the character's configured runnable speed (500 cm/s by default), permits up to 15 degrees/second of left-stick steering, then restores ordinary locomotion directly. Grounded roll slowdown models sliding resistance and discrete contact-energy losses separately from ordinary walking braking.
+- While occupying a vehicle, the interaction prompt displays live speed in MPH so the bailout bands can be tested directly.
+- When bailout telemetry is enabled, `[VIC][FullTrace]` samples the complete entry-to-stop motion state every 100 milliseconds, including character/vehicle mass, positions, velocity, observed acceleration, ground contact, movement mode, root motion, braking, friction, controlled-roll deceleration, steering, and separation distance.
+- Vehicle re-entry remains blocked during controlled recovery and succeeds once recovery restores player control.
+
+Before merging gameplay changes, manually smoke-test one stopped exit, a 5–15 mph bailout, and controlled rolls at both moderate and high speed in `/Game/OWS/Levels/OWS_CombinedDemo`. Confirm the lower-speed bailout does not force a landing or stumble animation; confirm the roll loops until runnable speed, left-stick steering is limited but useful, locomotion resumes directly, and the camera remains aligned. After each exit or recovery, verify vehicle re-entry, locomotion (including analog walk/shuffle and sprint), traversal, aiming, hotbar/equipment/abilities, camera input, and collision. Those feature-level actions require player input and are not claimed by the automation suite.
 
 Multiplayer is a separate explicit test tier. Server-authoritative transitions are tracked by [issue #27](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/27), and seat-contention/recovery coverage is tracked by [issue #28](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/28). This local editor suite does not claim multiplayer acceptance.
