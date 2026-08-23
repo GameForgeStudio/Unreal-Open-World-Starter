@@ -11,6 +11,7 @@ public class OWS : ModuleRules
 			"Core",
 			"CoreUObject",
 			"Engine",
+			"InputCore",
 			"OWSCore"
 		});
 
@@ -20,10 +21,11 @@ public class OWS : ModuleRules
 			"ChaosModularVehicleEngine",
 			"ChaosVehiclesCore",
 			"EnhancedInput",
-			"InputCore",
 			"KinetiForge",
 			"NetCore",
-			"PhysicsCore"
+			"PhysicsCore",
+			"Slate",
+			"SlateCore"
 		});
 
 		SetupModulePhysicsSupport(Target);

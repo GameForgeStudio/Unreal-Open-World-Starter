@@ -8,6 +8,7 @@
 #include "GameFramework/Controller.h"
 #include "GameFramework/Pawn.h"
 #include "Net/UnrealNetwork.h"
+#include "OWSVehicleInteractionComponent.h"
 #include "VehicleDriveAssemblyComponent.h"
 
 UOWSStockVehicleInteractionComponent::UOWSStockVehicleInteractionComponent()
@@ -51,7 +52,116 @@ void UOWSStockVehicleInteractionComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	InitializeSeatOccupancy();
+	CreateDoorInteractionTargets();
 	SetDriverPresent(false);
+}
+
+void UOWSStockVehicleInteractionComponent::EndPlay(
+	const EEndPlayReason::Type EndPlayReason)
+{
+	for (UOWSInteractionTargetComponent* Target : RuntimeCreatedDoorInteractionTargets)
+	{
+		if (Target)
+		{
+			Target->DestroyComponent();
+		}
+	}
+	RuntimeCreatedDoorInteractionTargets.Reset();
+	DoorInteractionTargets.Reset();
+	Super::EndPlay(EndPlayReason);
+}
+
+void UOWSStockVehicleInteractionComponent::CreateDoorInteractionTargets()
+{
+	AActor* OwnerActor = GetOwner();
+	if (!OwnerActor)
+	{
+		return;
+	}
+	DoorInteractionTargets.Reset();
+	TArray<UOWSInteractionTargetComponent*> ExistingTargets;
+	OwnerActor->GetComponents(
+		UOWSInteractionTargetComponent::StaticClass(), ExistingTargets);
+	for (const FOWSStockVehicleDoorDefinition& Door : DoorDefinitions)
+	{
+		if (Door.DoorId.IsNone())
+		{
+			continue;
+		}
+		UOWSInteractionTargetComponent* Target = nullptr;
+		for (UOWSInteractionTargetComponent* ExistingTarget : ExistingTargets)
+		{
+			if (ExistingTarget && ExistingTarget->InteractionId == Door.DoorId)
+			{
+				Target = ExistingTarget;
+				break;
+			}
+		}
+		if (!Target)
+		{
+			const FName ComponentName = MakeUniqueObjectName(
+				OwnerActor, UOWSInteractionTargetComponent::StaticClass(),
+				*FString::Printf(TEXT("OWSInteraction_%s"), *Door.DoorId.ToString()));
+			Target = NewObject<UOWSInteractionTargetComponent>(
+				OwnerActor, ComponentName, RF_Transient);
+			OwnerActor->AddInstanceComponent(Target);
+			Target->SetupAttachment(OwnerActor->GetRootComponent());
+			Target->InteractionId = Door.DoorId;
+			Target->SetRelativeTransform(Door.RelativeTransform);
+			Target->RegisterComponent();
+			RuntimeCreatedDoorInteractionTargets.Add(Target);
+		}
+		DoorInteractionTargets.Add(Target);
+	}
+}
+
+UOWSInteractionTargetComponent*
+UOWSStockVehicleInteractionComponent::GetDoorInteractionTarget(
+	const FName DoorId) const
+{
+	for (UOWSInteractionTargetComponent* Target : DoorInteractionTargets)
+	{
+		if (Target && Target->InteractionId == DoorId)
+		{
+			return Target;
+		}
+	}
+	return nullptr;
+}
+
+bool UOWSStockVehicleInteractionComponent::CanActivateOWSTarget_Implementation(
+	UOWSInteractionTargetComponent* Target,
+	AController* Activator,
+	FText& OutFailureReason)
+{
+	APawn* Vehicle = GetVehiclePawn();
+	UOWSVehicleInteractionComponent* VehicleInteraction = Activator
+		? Activator->FindComponentByClass<UOWSVehicleInteractionComponent>()
+		: nullptr;
+	if (!Target || Target->GetOwner() != GetOwner() ||
+		!FindDoorDefinition(Target->InteractionId) || !Vehicle || !VehicleInteraction)
+	{
+		OutFailureReason = NSLOCTEXT(
+			"OWSVehicleInteraction", "InvalidDoorTarget",
+			"This vehicle door cannot be activated.");
+		return false;
+	}
+	return VehicleInteraction->CanEnterVehicleThroughDoor(
+		Vehicle, Target->InteractionId, OutFailureReason);
+}
+
+bool UOWSStockVehicleInteractionComponent::ActivateOWSTarget_Implementation(
+	UOWSInteractionTargetComponent* Target,
+	AController* Activator,
+	FText& OutFailureReason)
+{
+	UOWSVehicleInteractionComponent* VehicleInteraction = Activator
+		? Activator->FindComponentByClass<UOWSVehicleInteractionComponent>()
+		: nullptr;
+	APawn* Vehicle = GetVehiclePawn();
+	return Target && Vehicle && VehicleInteraction &&
+		VehicleInteraction->TryEnterVehicleThroughDoor(
+			Vehicle, Target->InteractionId, OutFailureReason);
 }
 
 void UOWSStockVehicleInteractionComponent::GetLifetimeReplicatedProps(
@@ -399,6 +509,10 @@ void UOWSStockVehicleInteractionComponent::SetDriverPresent(const bool bPresent)
 	bDriverPresent = bPresent;
 	if (UVehicleDriveAssemblyComponent* Drive = GetKinetiForgeDriveAssembly())
 	{
+		// Input actions can stop dispatching when possession and mapping contexts
+		// change, so explicitly clear retained driving axes at every driver handoff.
+		Drive->InputThrottle(0.0f, true);
+		Drive->InputSteering(0.0f, true);
 		Drive->InputBrake(bPresent ? 0.0f : 1.0f, true);
 		Drive->InputHandbrake(bPresent ? 0.0f : 1.0f, true);
 	}

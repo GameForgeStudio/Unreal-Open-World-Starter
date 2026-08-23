@@ -15,7 +15,7 @@ Controller names use both PlayStation and Xbox labels: `Cross / A`, `Circle / B`
 | Sprint | Left `Shift` | `Circle / B` |
 | Jump or traverse | `Space` | `Cross / A` |
 | Crouch | `C` | `Triangle / Y` |
-| Interact | `E` | `Square / X` |
+| Activate the selected world target | `F` | `Square / X` |
 | Toggle strafe | Middle mouse button | — |
 | Aim | Right mouse button | `L2 / LT` |
 | Ragdoll | `X` | — |
@@ -44,15 +44,20 @@ The OWS controller exposes four ordered hotbar layers. Hold `L1 / LB` or `R1 / R
 
 While a layer is active, any D-pad direction or face button routes one of that layer's eight generic slots. OWS exposes 32 addresses in total; the gameplay system using a slot decides what that slot does. The developer hotbar display appears only when its presentation setting allows it.
 
-Without a shoulder modifier, D-pad left and right cycle the placed OWS character roster. D-pad up and down have no standalone on-foot action. `R2 / RT` routes the generic primary-action press and release seam. `Circle / B` routes cancel only while an OWS menu or other cancelable context explicitly enables it.
+Without a shoulder modifier, D-pad left and right cycle the placed OWS character roster. D-pad up and down have no standalone on-foot action. `R2 / RT` routes the generic primary-action press and release seam. `Escape` and `Circle / B` route the same Cancel press/release seam only while an OWS menu or other cancelable context explicitly enables it.
 
 ## Entering and leaving vehicles
 
 | State | Keyboard | Controller | Behavior |
 | --- | --- | --- | --- |
 | On foot near an enterable vehicle | Tap `F` | Tap `Square / X` | Enter the nearest valid driver seat within range. |
-| Driving at or below 5 mph | Tap `F` | Tap `Circle / B` | Exit at a safe stopped-exit location. |
-| Driving above 5 mph | Hold `F` for 2 seconds | Hold `Circle / B` for 2 seconds | Bail out once the hold completes. Releasing early cancels the request. |
+| Driving at or below 5 mph | Tap `Escape` | Tap `Circle / B` | Exit at a safe stopped-exit location. |
+| Driving above 5 mph | Hold `Escape` for 2 seconds | Hold `Circle / B` for 2 seconds | Bail out once the hold completes. Releasing early cancels the request. |
+
+On-foot `F` and `Square / X` both enter through the OWS selector's `Activate`
+function. Vehicle entry consumes the exact authored door interaction point
+already resolved by the selector. It does not run a second vehicle detector or
+choose another door after activation.
 
 After a moving bailout, the character ragdolls and recovers automatically. Immediate re-entry into that vehicle is blocked until the character first moves more than 550 cm away.
 
@@ -80,6 +85,8 @@ The persistent OWS hotbar router also reserves the controller shoulders, D-pad, 
 - OWS controller: `/Game/OWS/Controllers/PC_OWSCharacterDemo`
 - Vehicle mapping context: `/KinetiForge/Template/Input/IMC_VehicleDefault`
 - Vehicle entry and exit runtime: `Source/OWS/Private/OWSVehicleInteractionComponent.cpp`
+- Selector and Activate runtime: `Source/OWS/Private/OWSSelectorComponent.cpp`
+- Interaction-point contract: [INTERACTION_TARGETING.md](INTERACTION_TARGETING.md)
 - Cross-hotbar runtime: `Plugins/OWSFramework/Source/OWSCore/Private/OWSControllerHotbarComponent.cpp`
 
 If any documented control differs in the configured OWS experience, report the exact map, input device, action, and observed result as an issue.
