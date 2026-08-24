@@ -2,7 +2,13 @@
 
 ## Architecture maturity rule
 
-An accepted target architecture is not an implemented capability, and a passing test for existing behavior is not evidence that a future architecture stage exists. A capability may be documented as available only when its implementation and verification are merged and tied to the tested commit. See [OWS_ARCHITECTURE_ROADMAP.md](OWS_ARCHITECTURE_ROADMAP.md) for the accepted sequence and stage gates.
+An accepted target architecture is not an implemented capability, and a passing test for existing behavior is not evidence that a future architecture stage exists. A capability may be documented as available only when its implementation and verification are merged and tied to the tested commit. See the [OWS Platform Architecture and Composition Contract](OWS_PLATFORM_ARCHITECTURE.md) for reusable-domain conformance and the [OWS Product Architecture Roadmap](OWS_ARCHITECTURE_ROADMAP.md) for the accepted sequence and stage gates.
+
+## Platform conformance status
+
+Current automation proves selected behavior inside the full OWS starter project. It does not yet prove the accepted Stage 1 target: independently buildable domain Runtime modules, clean-host loading, forbidden-reference enforcement, domain-owned test modules, pre-runtime build/cook-manifest coverage for every shipped profile, packaged launch smoke, or migration compatibility.
+
+The compatibility-first migration backlog requires those checks to be established before reusable ownership is retired from the project shell. Until that work merges, documentation must distinguish a passing full-project integration test from reusable OWS plugin conformance.
 
 ## City Foundation conformance status
 
@@ -43,7 +49,7 @@ Any failed assertion or Unreal process failure returns exit code `1`. The runner
 
 - Every checked-out Git LFS object passes `git lfs fsck`.
 - Unreal starts the project and loads its required runtime and editor modules.
-- Required OWS, GASPALS, and KinetiForge foundation assets load.
+- Required OWS and maintained Character/Vehicle fork assets load.
 - `/Game/OWS/Levels/OWS_CombinedDemo` loads and passes Map Check without errors.
 - `/Game/OWS/Levels/OWS_CourseSection` loads with exactly three OWS character instances.
 - Every OWS character instance uses the shared experimental setup marker.

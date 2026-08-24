@@ -13,7 +13,9 @@ This tagline is the OWS product north star, not a claim that every pillar is imp
 - [Git LFS](https://git-lfs.com/) is required before cloning so Unreal assets download correctly.
 - Windows contributors who build the C++ project need the Visual Studio C++ toolchain supported by Unreal Engine 5.8.
 
-The project’s third-party plugins are included under `Plugins/`. Unreal Engine’s built-in plugins remain part of the required Unreal Engine installation; they are not copied into this repository.
+The complete OWS-maintained plugin set is included under `Plugins/`. Unreal Engine’s built-in plugins remain part of the required Unreal Engine installation; they are not copied into this repository.
+
+The accepted future release policy adds a separately maintained previous-minor line only after that line passes its full conformance matrix. This checkout remains 5.8.1-only until such a release exists.
 
 ## Product architecture roadmap
 
@@ -29,7 +31,7 @@ The accepted execution order is:
 4. Combat implementation against the accepted earlier contracts.
 5. Living-world simulation.
 
-Read the canonical [OWS Product Architecture Roadmap](Docs/OWS_ARCHITECTURE_ROADMAP.md) for the stage gates, tracking issues, checkout rules, City coordination, and decisions that remain open. A planned architecture is not presented as current functionality.
+Read the canonical [OWS Platform Architecture and Composition Contract](Docs/OWS_PLATFORM_ARCHITECTURE.md) for the accepted maintained-fork model, plugin families, dependency rules, extension contract, conformance requirements, and migration backlog. The [OWS Product Architecture Roadmap](Docs/OWS_ARCHITECTURE_ROADMAP.md) defines the five-stage order and checkout gates. A planned architecture is not presented as current functionality.
 
 ## Start
 
@@ -48,7 +50,7 @@ Open `OWS.uproject` in Unreal Engine 5.8.1. On the first C++ setup, generate the
 
 OWS is developing a self-contained real-world city workflow that imports OSM/GeoJSON and terrain sources in Unreal Editor, generates an editable cooked city foundation, and can add deterministic World Partition-aligned detail through shipped prewarm data, a player-configurable persistent cache, and live cosmetic PCG. This is the accepted target architecture, not a claim of current `main` functionality. The baked city remains fully playable when every optional runtime layer and cache is disabled.
 
-The accepted implementation boundary is a first-party `OWSCityFoundation` plugin with separate runtime and editor modules so raw import tooling cannot enter packaged builds. The plugin is planned work and is not yet present in `main`.
+The accepted implementation boundary is a first-party `OWSCityFoundation` plugin with separate runtime and editor modules plus explicit cook and staging rules, so raw import code and content cannot enter packaged builds. The plugin is planned work and is not yet present in `main`.
 
 Read the accepted [OWS City Foundation architecture](Docs/CITY_FOUNDATION_ARCHITECTURE.md) for the input contract, terrain conformance, editable roads, double-hybrid cell system, cache controls, multiplayer/save boundaries, and acceptance invariants.
 
@@ -60,7 +62,7 @@ OWS Framework is a first-party OWS plugin created and owned by the project.
 
 OWS City Foundation is also a first-party OWS plugin in the accepted target architecture; its implementation is tracked under epic #82 and is not yet present in `main`.
 
-GASPALS, KinetiForge, Sigil Inventory, and Save Extension are included attributed foundations. Their original plugin identities, notices, and licenses remain with them; OWS-owned systems built from or around those foundations are documented as OWS.
+GASPALS, KinetiForge, Sigil Inventory, and Save Extension are included starting foundations whose repository copies are maintained and evolved as OWS forks. Their intentional top-level identities and notices remain with them, while newly supported modules, APIs, assets, settings, tests, and documentation below that boundary use coherent OWS-facing contracts. They are included in the complete OWS bundle and are not separate user-installed dependencies.
 
 ## Community and contributions
 

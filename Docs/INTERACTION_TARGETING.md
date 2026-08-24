@@ -7,7 +7,7 @@ characters, pickups, hacking objects, and future gameplay systems must consume
 this foundation rather than polling their own selection buttons or building a
 second player-side detector.
 
-This contract proves local targeting and Activate dispatch. It does not implement the shared server-authoritative action spine planned by [Stage 2 of the OWS architecture roadmap](OWS_ARCHITECTURE_ROADMAP.md). Stage 1 owns the selector's eventual first-party plugin placement; its current project-module location describes `main`, not an approved destination.
+This contract proves current local targeting and Activate dispatch. It does not implement the shared server-authoritative action spine planned by [Stage 2 of the OWS architecture roadmap](OWS_ARCHITECTURE_ROADMAP.md). The accepted [Stage 1 platform contract](OWS_PLATFORM_ARCHITECTURE.md) assigns selection and activation to the OWS Interaction domain and semantic input routing to OWS Input. Their current project-module placement describes `main`, not the accepted target or permission to move them outside a scoped migration issue.
 
 ## Passive awareness detection
 

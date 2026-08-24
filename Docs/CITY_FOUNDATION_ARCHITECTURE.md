@@ -4,7 +4,7 @@ This document is the controlling product and architecture contract for the OWS C
 
 > **Status:** Accepted target architecture; implementation is tracked by the City Foundation epic and its child issues. This document does not claim that the importer, generators, cell orchestrator, or cache currently exist in `main`.
 
-This remains the accepted City subsystem contract under the package-wide [OWS Product Architecture Roadmap](OWS_ARCHITECTURE_ROADMAP.md). Stage 1 may add non-conflicting platform rules. Stage 2 must coordinate with City's accepted stable-identity, server, save, and Actor-promotion requirements; the exact cross-boundary ownership remains an interview decision. A conflict returns to Aurora for an explicit decision rather than silently changing either contract. City's authority invariants do not themselves implement the shared gameplay spine.
+This remains the accepted City subsystem contract under the package-wide [OWS Platform Architecture and Composition Contract](OWS_PLATFORM_ARCHITECTURE.md) and [OWS Product Architecture Roadmap](OWS_ARCHITECTURE_ROADMAP.md). The accepted Stage 1 ownership, dependency, content, profile, settings, cooking, compatibility, and conformance rules apply wherever they do not conflict with this City contract. Stage 2 must coordinate with City's accepted stable-identity, server, save, and Actor-promotion requirements; their exact shared gameplay-spine ownership remains a Stage 2 interview decision. A conflict returns to Aurora for an explicit decision rather than silently changing either contract. City's authority invariants do not themselves implement the shared gameplay spine.
 
 The City Foundation turns bounded real-world map and elevation data into an editable, playable Unreal city. OWS imports and validates source data in the editor, generates an authoritative cooked city foundation, and can enrich that foundation through deterministic, World Partition-aligned runtime layers. Runtime generation and caching are accelerators and presentation systems; they are never the only source of gameplay truth.
 
@@ -133,7 +133,7 @@ The writable cache is not a Content asset. Its logical platform-resolved locatio
 <PlatformWritableData>/OWS/CityFoundation/Cache/<ProjectId>/<WorldId>/<Schema>/
 ```
 
-`OWSCityRuntime` owns developer-authorized runtime layer policies and player cache controls. `OWSCityEditor` owns non-authoritative editor preferences. Reproducibility-critical import, registration, and generation values live in versioned per-city assets rather than personal editor preferences. OWS Framework may present City options in a unified settings interface, but City Runtime owns their meaning and behavior.
+`OWSCityRuntime` owns developer-authorized runtime layer policies and player cache controls. `OWSCityEditor` owns non-authoritative editor preferences. Reproducibility-critical import, registration, and generation values live in versioned per-city assets rather than personal editor preferences. The Platform settings registry and UI domain may present City options in a unified interface, but City Runtime owns their meaning and behavior.
 
 ## Terrain-conformed buildings
 

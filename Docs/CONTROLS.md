@@ -2,7 +2,7 @@
 
 This is the control reference for the configured OWS experience in `/Game/OWS/Levels/OWS_CombinedDemo`. It was verified against the Unreal Engine 5.8.1 input assets and the OWS runtime bindings on August 22, 2026.
 
-This document records current configured behavior. It does not decide the final input-routing, plugin, or module ownership governed by [Stage 1 of the OWS architecture roadmap](OWS_ARCHITECTURE_ROADMAP.md).
+This document records current configured behavior. The accepted target ownership is the dedicated OWS Input domain defined by the [OWS Platform Architecture and Composition Contract](OWS_PLATFORM_ARCHITECTURE.md); that target is not presented here as implemented.
 
 Controller names use both PlayStation and Xbox labels: `Cross / A`, `Circle / B`, `Square / X`, `Triangle / Y`, `L1 / LB`, `R1 / RB`, `L2 / LT`, and `R2 / RT`.
 
@@ -81,7 +81,7 @@ The vehicle mapping context is active while the player possesses an OWS vehicle.
 
 The persistent OWS hotbar router also reserves the controller shoulders, D-pad, face buttons, and `R2 / RT`. Those controls remain available to its generic routing seams during vehicle possession. `Circle / B` is not mapped to the vehicle brake or handbrake; it is reserved for stopped exit and moving bailout.
 
-## Source of truth
+## Current implementation sources
 
 - Character mapping context: `/Game/OWS/Input/IMC_OWSCharacter`
 - OWS controller: `/Game/OWS/Controllers/PC_OWSCharacterDemo`

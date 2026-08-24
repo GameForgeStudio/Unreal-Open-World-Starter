@@ -4,7 +4,7 @@ This document defines the repeatable acceptance standard for the boundary betwee
 
 The matrix is intentionally a test specification, not a claim that every scenario already passes. Run results expose the exact gaps that must become independently actionable GitHub issues.
 
-Passing this matrix accepts the tested character/vehicle boundary only. It does not accept the package-wide plugin topology, the shared authority/persistence spine, or the full Character or Driving architecture tracked by [the OWS Product Architecture Roadmap](OWS_ARCHITECTURE_ROADMAP.md).
+Passing this matrix accepts the tested character/vehicle behavior only. It does not prove that current code conforms to the accepted [OWS Platform Architecture and Composition Contract](OWS_PLATFORM_ARCHITECTURE.md), implements the shared authority/persistence spine, or establishes the full Character or Driving architecture tracked by the [OWS Product Architecture Roadmap](OWS_ARCHITECTURE_ROADMAP.md).
 
 ## Current execution target
 
@@ -14,7 +14,7 @@ Passing this matrix accepts the tested character/vehicle boundary only. It does 
 - Standalone, listen-server host, and remote-client results must be recorded separately.
 - Record the tested commit; do not report a result against an uncommitted description such as "latest."
 
-`OWS_CombinedDemo` is the configured startup map today. It is the execution target for this matrix until [issue #12](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/12) selects the canonical OWS demonstration experience. Changing the canonical demo does not invalidate the scenario IDs or expected behavior below.
+`OWS_CombinedDemo` is the accepted canonical OWS demonstration experience and the execution target for this matrix. A later approved replacement would not invalidate the scenario IDs or expected behavior below.
 
 ## Result and evidence rules
 

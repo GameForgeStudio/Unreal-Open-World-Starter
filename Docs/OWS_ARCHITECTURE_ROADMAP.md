@@ -1,6 +1,6 @@
 # OWS Product Architecture Roadmap
 
-> **Status:** Accepted product direction and execution order. Detailed platform and subsystem architecture remains subject to repository research and Aurora's interview-driven approval.
+> **Status:** Accepted product direction and execution order. Stage 1 platform architecture is accepted; later shared and subsystem architecture remains subject to repository research and Aurora's interview-driven approval.
 
 ## Purpose
 
@@ -19,7 +19,7 @@ OWS is both:
 
 The project game module and demo content form a thin composition, integration, and demonstration shell. They configure, connect, and demonstrate reusable OWS systems; reusable subsystem ownership does not remain in that shell as the accepted long-term architecture.
 
-This decision establishes the product layers, but it does not yet name every plugin or module, authorize moving existing files, or decide how individual foundations are adapted. Those are Stage 1 interview decisions.
+The controlling [OWS Platform Architecture and Composition Contract](OWS_PLATFORM_ARCHITECTURE.md) defines how these layers compose, how the included maintained forks evolve as OWS, and how later migration is gated. It does not authorize moving existing files outside a separately claimed implementation issue.
 
 ## Accepted architecture sequence
 
@@ -27,20 +27,20 @@ This decision establishes the product layers, but it does not yet name every plu
 
 Tracking: [epic #102](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/102), [architecture issue #103](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/103), and [publication issue #63](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/63).
 
-Stage 1 defines the product-wide rules every OWS subsystem must follow:
+The accepted [Stage 1 platform contract](OWS_PLATFORM_ARCHITECTURE.md) defines the product-wide rules every OWS subsystem must follow:
 
 - Which responsibilities, if any, must be shared package-wide and where they belong.
 - First-party plugin and module boundaries.
 - Allowed dependency directions and forbidden coupling.
 - Reusable product code and content versus the composition/demo shell, examples, and engineering labs.
-- How each included implementation foundation integrates with OWS, including whether an adapter or facade boundary is required.
+- How each included maintained implementation fork evolves as an OWS-owned domain without becoming a separately installed dependency.
 - Runtime, editor, developer-tool, validation, and test ownership.
 - Public C++, Blueprint, data, event, tag, settings, and configuration extension rules.
 - Input and context-routing ownership.
 - Cooking, packaging, optional profiles, compatibility, versioning, deprecation, and migration.
 - Conformance evidence required before a system is presented as reusable OWS product code.
 
-Stage 1 produces an accepted platform contract, dependency and ownership matrix, and migration backlog. It does not perform speculative module moves or subsystem refactors while those decisions remain open.
+Stage 1 produces the accepted platform contract, dependency and ownership matrix, and compatibility-first migration backlog. It does not perform module moves, asset relocation, or subsystem refactors; those require separately claimed implementation issues under the accepted gates.
 
 ### Stage 2 — Shared gameplay spine and authority/persistence
 
@@ -122,24 +122,21 @@ Existing tightly scoped maintenance, reproduction, testing, and documentation ma
 
 The accepted [City Foundation architecture](CITY_FOUNDATION_ARCHITECTURE.md) remains independently controlling for City work. Its editor/runtime split and first-party plugin boundary are compatible with the accepted OWS product shape.
 
-City import, normalization, roads, baking, streaming, cache, and validation work may continue under its accepted contract. Stage 1 may add non-conflicting product-wide rules. Stage 2 must coordinate with City's already accepted stable-identity, server, save, and Actor-promotion requirements; the exact cross-boundary ownership remains an interview decision. A conflict returns to Aurora for an explicit decision; no document silently overrides another accepted contract.
+City import, normalization, roads, baking, streaming, cache, and validation work may continue under its accepted contract. The accepted Stage 1 product-wide rules apply wherever they do not conflict with City's controlling domain contract. Stage 2 must coordinate with City's already accepted stable-identity, server, save, and Actor-promotion requirements; their exact shared gameplay-spine ownership remains a Stage 2 interview decision. A conflict returns to Aurora for an explicit decision; no document silently overrides another accepted contract.
 
-## Explicitly undecided
+## Deferred implementation and later-stage decisions
 
-This roadmap does not yet decide:
+Stage 1 deliberately delegates details that require their own accepted architecture or tightly scoped implementation issue:
 
-- Exact first-party plugin names, module names, count, or granularity.
-- Whether OWS needs a named shared kernel and, if so, which responsibilities it owns.
-- The future boundary or name of the existing OWSFramework plugin.
-- Exact destinations for reusable code or assets currently under `Source/OWS` or `/Game/OWS`.
-- Whether each included implementation foundation needs an adapter or facade and, if so, its implementation form.
-- The canonical public API, tag, event, data-asset, input, settings, or configuration scheme.
-- The precise roles of Gameplay Abilities, Sigil Inventory, Save Extension, Character Movement Component, Mover, or any vehicle provider.
-- Supported install profiles, platforms, network modes, cooking rules, API guarantees, deprecation periods, or migration order.
+- Exact descriptor names, module inventories, loading phases, and file destinations within the accepted Platform and domain-family rules.
+- Exact public API, tag, event, data, profile, settings, and configuration schemas; Stage 2 or the owning domain architecture controls gameplay semantics.
+- The precise roles of Gameplay Abilities, Sigil Inventory, Save Extension, Character Movement Component, Mover, and other enabled foundations.
+- Exact asset moves, redirect inventories, Input priority values, cook chunks, optional profile contents, installer presentation, and release artifacts.
+- Detailed Character, Vehicle, Hacking, Combat, and Living World implementation technology.
 - The internal order of Character, Hacking, and Driving within Stage 3.
-- The first accepted living-world feature slice or implementation technology.
+- The first accepted Living World feature slice.
 
-These are interview decisions. Silence, current file placement, an enabled plugin, a technical convenience, or a consumer issue does not decide them.
+These are not permission to reopen settled Stage 1 product, fork, ownership, dependency, installation, input, content-tier, extension, compatibility, or migration rules. Silence, current file placement, an enabled plugin, a technical convenience, or a consumer issue does not decide a delegated detail.
 
 ## Source-of-truth relationship
 
