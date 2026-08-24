@@ -40,6 +40,7 @@ If you are unsure where something belongs, start a Discussion and ask.
 ## Before you begin
 
 - Read the repository’s [README](README.md) and the issue or discussion you plan to work on.
+- Before proposing City Foundation work, read the accepted [City Foundation architecture](Docs/CITY_FOUNDATION_ARCHITECTURE.md); implementation issues may refine it but must not silently replace its contracts.
 - For a new idea, start a Discussion before doing large or architectural work.
 - For a bug or a defined task, use an existing Issue or create one with the appropriate template.
 - Work in a branch or fork. Never push directly to `main`.

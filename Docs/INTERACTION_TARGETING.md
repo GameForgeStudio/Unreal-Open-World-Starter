@@ -84,6 +84,13 @@ server must revalidate target identity, enabled/availability state, distance,
 permissions, occupancy, and gameplay state before applying the mutation. A
 client success event must not be treated as server authorization.
 
+The City Foundation follows the same boundary. A cached cosmetic instance is
+never authoritative. If a generated city feature becomes interactive, OWS
+addresses it through the city's stable feature ID and promotes its mutable state
+to an authoritative replicated Actor or server record. Cache eviction or
+regeneration must not erase or replace that gameplay state. See
+[CITY_FOUNDATION_ARCHITECTURE.md](CITY_FOUNDATION_ARCHITECTURE.md).
+
 OWS does not claim multiplayer verification for this selector task. Vehicle
 RPCs, contention, and network execution are tracked by
 [issue #27](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/27).

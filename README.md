@@ -26,9 +26,23 @@ On Windows, run the clone from a short parent directory such as `C:\Projects`. U
 
 Open `OWS.uproject` in Unreal Engine 5.8.1. On the first C++ setup, generate the project files and build when Unreal prompts you. This public starter intentionally excludes copied Epic template assets; obtain optional template/example content from your licensed Unreal installation.
 
-## Included third-party plugins
+## City Foundation architecture
 
-The following project plugins are included in this repository: GASPALS, OWS Framework, Sigil Inventory, Save Extension, and KinetiForge. Their respective notices and licenses remain with those plugins.
+OWS is developing a self-contained real-world city workflow that imports OSM/GeoJSON and terrain sources in Unreal Editor, generates an editable cooked city foundation, and can add deterministic World Partition-aligned detail through shipped prewarm data, a player-configurable persistent cache, and live cosmetic PCG. This is the accepted target architecture, not a claim of current `main` functionality. The baked city remains fully playable when every optional runtime layer and cache is disabled.
+
+The accepted implementation boundary is a first-party `OWSCityFoundation` plugin with separate runtime and editor modules so raw import tooling cannot enter packaged builds. The plugin is planned work and is not yet present in `main`.
+
+Read the accepted [OWS City Foundation architecture](Docs/CITY_FOUNDATION_ARCHITECTURE.md) for the input contract, terrain conformance, editable roads, double-hybrid cell system, cache controls, multiplayer/save boundaries, and acceptance invariants.
+
+Delivery is tracked under [epic #82](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/82), including the [cooked city core](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/96), [enhancement streaming](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/97), [prewarm and persistent cache](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/98), [player storage controls](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/99), and [end-to-end validation](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/100).
+
+## Included plugins
+
+OWS Framework is a first-party OWS plugin created and owned by the project.
+
+OWS City Foundation is also a first-party OWS plugin in the accepted target architecture; its implementation is tracked under epic #82 and is not yet present in `main`.
+
+GASPALS, KinetiForge, Sigil Inventory, and Save Extension are included attributed foundations. Their original plugin identities, notices, and licenses remain with them; OWS-owned systems built from or around those foundations are documented as OWS.
 
 ## Community and contributions
 

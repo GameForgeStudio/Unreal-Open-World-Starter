@@ -123,11 +123,11 @@ Run CV-ENV-001 and all CV-FOOT scenarios once per character before using that ch
 
 ## Core character/vehicle loop
 
-CV-CORE-001 is the required cross-product scenario. Run it for every cell in the full coverage grid.
+CV-CORE-001 is the required cross-product scenario. Run it for every character/vehicle combination in the full coverage grid.
 
 | ID | Setup and action | Expected behavior | Required evidence |
 | --- | --- | --- | --- |
-| CV-CORE-001 | With the vehicle stopped and unoccupied: approach within entry range, enter, accelerate, steer, brake to a stop, exit, move beyond the vehicle, and re-enter. | The correct vehicle is entered; control transfers once; driving inputs affect only it; stopped exit places the same character safely nearby; on-foot control and presentation are restored; re-entry succeeds. All universal invariants hold. | Result per character/vehicle cell. Video is required for a failure; a batch observation may support passing cells from the same run. |
+| CV-CORE-001 | With the vehicle stopped and unoccupied: approach within entry range, enter, accelerate, steer, brake to a stop, exit, move beyond the vehicle, and re-enter. | The correct vehicle is entered; control transfers once; driving inputs affect only it; stopped exit places the same character safely nearby; on-foot control and presentation are restored; re-entry succeeds. All universal invariants hold. | Result per character/vehicle combination. Video is required for a failure; a batch observation may support passing combinations from the same run. |
 
 ## Entry matrix
 
@@ -227,7 +227,7 @@ Run with two players in listen-server PIE or equivalent: one listen host and one
 
 ## Full release coverage grid
 
-Record CV-CORE-001 in every cell. Use `NR` until the combination has actually been tested; replace it with a linked test record, not an unsupported checkmark.
+Record CV-CORE-001 for every combination. Use `NR` until the combination has actually been tested; replace it with a linked test record, not an unsupported checkmark.
 
 | Character | V01 | V02 | V03 | V04 | V05 | V06 | V07 | V08 | V09 | V10 | V11 | V12 | V13 | V14 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
