@@ -1,5 +1,11 @@
 # OWS Automated Testing
 
+## City Foundation conformance status
+
+The accepted City Foundation target is documented in [CITY_FOUNDATION_ARCHITECTURE.md](CITY_FOUNDATION_ARCHITECTURE.md). Its importer, generators, World Partition cell orchestrator, and player cache are not yet implemented in `main`, so the repository does not yet claim executable City Foundation conformance.
+
+Implementation work must add automated and manual coverage for source validation, four-corner alignment, deterministic generation, cross-cell seams, override preservation, cache hit/miss equivalence, partial invalidation, eviction, corruption recovery, high-speed traversal, teleport preloading, multiplayer authority, save restoration, and constrained storage. Player-facing coverage must verify Off, Automatic, Custom, and Clear Cache; recommendation from the volume that actually stores the cache; emergency free-space preservation; high-water-to-target eviction hysteresis; and that Clear Cache cannot touch saves or shipped prewarm data. The non-negotiable destructive-cache test deletes or corrupts all writable city-cache data, disables runtime PCG, joins multiplayer through every supported role, fast-travels to tested cells, and verifies that traversal, collision, navigation, vehicles, authority, and saves still function using the cooked core. [Issue #100](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/100) owns the complete City Foundation verification matrix.
+
 ## Clean-start smoke test
 
 The clean-start smoke test detects Git LFS corruption, missing project modules, required-asset failures, canonical-map load failures, Map Check errors, and incorrect setup of the three OWS character instances.
