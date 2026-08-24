@@ -40,7 +40,7 @@ If you are unsure where something belongs, start a Discussion and ask.
 ## Before you begin
 
 - Read the repository’s [README](README.md) and the issue or discussion you plan to work on.
-- Before proposing cross-system, plugin, module, authority, persistence, or major feature work, read the accepted [OWS Product Architecture Roadmap](Docs/OWS_ARCHITECTURE_ROADMAP.md).
+- Before proposing cross-system, plugin, module, input, settings, content-ownership, cooking, compatibility, or major feature work, read the accepted [OWS Platform Architecture and Composition Contract](Docs/OWS_PLATFORM_ARCHITECTURE.md) and [OWS Product Architecture Roadmap](Docs/OWS_ARCHITECTURE_ROADMAP.md).
 - Before proposing City Foundation work, read the accepted [City Foundation architecture](Docs/CITY_FOUNDATION_ARCHITECTURE.md); implementation issues may refine it but must not silently replace its contracts.
 - For a new idea, start a Discussion before doing large or architectural work.
 - For a bug or a defined task, use an existing Issue or create one with the appropriate template.
@@ -53,6 +53,8 @@ If you are unsure where something belongs, start a Discussion and ask.
 - Check the issue's status and linked architecture blockers before claiming it.
 - An issue labeled `status: architecture gated` may collect research and requirements, but it is not available for implementation checkout until its linked contracts are accepted and Aurora opens the applicable roadmap stage.
 - Keep the claimed issue's scope exact. Record an out-of-scope discovery as a separate issue instead of following it into another contributor's area.
+- Do not move reusable behavior into the project shell, add reverse `/Game` references from reusable plugins, expose maintained-fork implementation types as new public OWS contracts, or create peer-domain private dependencies.
+- Architecture migration is compatibility-first: establish the approved owner and baseline, move one responsibility in one scoped issue, preserve redirects or shims, verify behavior, and retire legacy surfaces only after their deprecation window.
 
 ## Choose your route
 

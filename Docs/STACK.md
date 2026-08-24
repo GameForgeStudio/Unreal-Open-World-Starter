@@ -1,34 +1,49 @@
 # Open World Starter Runtime
 
-OWS is the product. Its included systems and plugins are implementation foundations that OWS integrates into one starter package.
+OWS is the product. Its included starting systems are maintained OWS forks that evolve together inside one self-contained starter package.
 
 ## Accepted target product shape
 
 OWS is a complete, immediately playable starter project built over reusable first-party OWS plugins. The project game module and `/Game/OWS` demo content are the thin composition, integration, and demonstration shell in the accepted target architecture; reusable subsystem ownership does not remain there long-term.
 
-The exact plugin/module topology, migration destinations, public extension contracts, and adapter forms remain Stage 1 interview decisions tracked by [the OWS Product Architecture Roadmap](OWS_ARCHITECTURE_ROADMAP.md). Current placement describes `main`; it is not authorization to keep, move, or duplicate a reusable system speculatively.
+The accepted [OWS Platform Architecture and Composition Contract](OWS_PLATFORM_ARCHITECTURE.md) defines the target plugin families, ownership, dependency directions, public extension rules, conformance evidence, and compatibility-first migration backlog. Current placement describes `main`; it is not authorization to move or duplicate a reusable system outside a separately claimed issue.
 
 ## Canonical playable experience
 
-| Responsibility | OWS authority |
+| Responsibility | Current authority in `main` |
 | --- | --- |
 | Default and editor startup map | `/Game/OWS/Levels/OWS_CombinedDemo` |
 | Default game mode | `/Game/OWS/GameModes/GM_OWSCharacterDemo` |
 | Character controller | `/Game/OWS/Controllers/PC_OWSCharacterDemo` |
-| Character and traversal | OWS character assets built from the included GASPALS foundation |
-| Vehicle driving | OWS vehicle assets built from the included KinetiForge foundation |
+| Character and traversal | OWS character assets configured from the maintained GASPALS fork |
+| Vehicle driving | OWS vehicle assets configured from the maintained KinetiForge fork |
 | Character/vehicle handoff | `UOWSStockVehicleInteractionComponent` and `UOWSVehicleInteractionComponent` in the OWS runtime module |
 | OWS runtime UI/settings | `OWSCore` hotbar, widget, and user-settings classes |
 
-`OWS_CombinedDemo` is the supported place to evaluate character locomotion, traversal, vehicle entry, driving, and vehicle exit together. Retired labs and subsystem evaluation maps are not part of the package.
+`OWS_CombinedDemo` is the supported place to evaluate character locomotion, traversal, vehicle entry, driving, and vehicle exit together. Retained labs and subsystem evaluation content may remain in the complete source installation, but they are outside the canonical user workflow. Excluding them from normal runtime cooks is the accepted target and must be proven by the baseline and domain cook-manifest work; this current-state summary does not claim that exclusion is implemented yet.
 
-## Runtime ownership
+## Current physical runtime ownership
 
 Character movement owns the on-foot pawn. The active vehicle pawn owns driving physics while occupied. OWS owns the transition between those states, including interaction discovery, possession, camera handoff, safe exit placement, and recovery behavior.
 
 The OWS runtime module contains the native character/vehicle integration. The OWS Framework plugin contains reusable OWS runtime UI and settings support. Content under `/Game/OWS` supplies the canonical maps, game modes, controllers, characters, and vehicle configuration.
 
-This section records current physical implementation. It does not override the accepted target product shape or pre-decide the Stage 1 migration plan.
+This section records current physical implementation. It does not override the accepted target product shape or authorize a migration by itself.
+
+## Accepted target ownership
+
+| Responsibility | Target owner |
+| --- | --- |
+| Package contracts, profiles, settings registry, compatibility, setup, and validation | Minimal Platform family retained under `Plugins/OWSFramework` |
+| Input contexts, semantic actions, priorities, and rebinding | OWS Input domain family |
+| Selection, targeting, interactables, and activation | OWS Interaction domain family |
+| Hotbars, prompts, menus, notifications, settings presentation, and view models | OWS UI domain family |
+| Complete character and traversal implementation | Maintained GASPALS fork evolving in place as the OWS Character family |
+| Complete vehicle implementation | Maintained KinetiForge fork evolving in place as the OWS Vehicle family |
+| Character/vehicle possession, entry, exit, bailout, and recovery | Narrow Character–Vehicle integration plugin family |
+| Playable composition and showcase | `Source/OWS` and `/Game/OWS` thin shell |
+
+The complete ownership and dependency matrix is maintained in [OWS_PLATFORM_ARCHITECTURE.md](OWS_PLATFORM_ARCHITECTURE.md). Target ownership is migrated one responsibility at a time with baselines, compatibility shims or redirects, and explicit verification.
 
 ## Accepted City Foundation target
 
