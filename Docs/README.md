@@ -6,6 +6,7 @@ This directory documents the current OWS implementation, accepted target archite
 
 - [STACK.md](STACK.md) — current package structure and runtime ownership.
 - [OWS_PLATFORM_ARCHITECTURE.md](OWS_PLATFORM_ARCHITECTURE.md) — accepted Stage 1 product layers, maintained-fork model, plugin families, dependency and ownership matrix, extension contract, conformance rules, and migration backlog.
+- [OWS_GAMEPLAY_SPINE_ARCHITECTURE.md](OWS_GAMEPLAY_SPINE_ARCHITECTURE.md) — accepted Stage 2 identity, action, GAS, inventory/equipment, authority, networking, persistence, recovery, notification, and conformance contract.
 - [OWS_ARCHITECTURE_ROADMAP.md](OWS_ARCHITECTURE_ROADMAP.md) — accepted product shape, five-stage architecture sequence, checkout gates, and later-stage decisions.
 - [CITY_FOUNDATION_ARCHITECTURE.md](CITY_FOUNDATION_ARCHITECTURE.md) — accepted real-world city import, terrain conformance, World Partition, procedural generation, and adaptive cell-cache contract.
 - [INTERACTION_TARGETING.md](INTERACTION_TARGETING.md) — current selector, precision targeting, Activate, interaction-point, and authority-boundary contract.
@@ -19,7 +20,7 @@ This directory documents the current OWS implementation, accepted target archite
 When documents disagree, use this order:
 
 1. Aurora's latest explicit requirement.
-2. The accepted contract applicable to the subject and within that contract's explicit scope, including `OWS_PLATFORM_ARCHITECTURE.md` for package-wide Stage 1 rules and `CITY_FOUNDATION_ARCHITECTURE.md` for City Foundation target behavior.
+2. The accepted contract applicable to the subject and within that contract's explicit scope, including `OWS_PLATFORM_ARCHITECTURE.md` for package-wide Stage 1 rules, `OWS_GAMEPLAY_SPINE_ARCHITECTURE.md` for Stage 2 shared gameplay semantics, and `CITY_FOUNDATION_ARCHITECTURE.md` for City Foundation target behavior.
 3. Current source, assets, and project configuration for what is implemented today.
 4. `STACK.md` for the documented current runtime architecture.
 

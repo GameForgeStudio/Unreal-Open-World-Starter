@@ -1,6 +1,6 @@
 # OWS Product Architecture Roadmap
 
-> **Status:** Accepted product direction and execution order. Stage 1 platform architecture is accepted; later shared and subsystem architecture remains subject to repository research and Aurora's interview-driven approval.
+> **Status:** Accepted product direction and execution order. Stage 1 and Stage 2 are accepted; later subsystem architecture remains subject to repository research and Aurora's interview-driven approval.
 
 ## Purpose
 
@@ -57,7 +57,9 @@ Stage 2 defines the shared semantics that characters, vehicles, interaction, com
 - Schema versioning, migration, missing content, corruption, rollback, and recovery.
 - Shared UI notification and observability boundaries.
 
-Stage 2 decides whether and how OWS uses enabled foundations such as Gameplay Abilities, Sigil Inventory, and Save Extension. Their presence in the project does not pre-decide their OWS-facing responsibilities or permit consumer systems to expose their internal APIs as the OWS contract.
+Stage 2 has approved how OWS uses enabled foundations such as Gameplay Abilities, Sigil Inventory, and Save Extension. Their presence in the project did not pre-decide their OWS-facing responsibilities and does not permit consumer systems to expose their internal APIs as the OWS contract.
+
+The accepted [OWS Shared Gameplay Spine, Authority, and Persistence Contract](OWS_GAMEPLAY_SPINE_ARCHITECTURE.md) establishes PlayerState-centered player identity, stable definition/entity/scoped IDs, the shared OWS action/event/tag language, the two-host GAS model, shared vitality and affiliation primitives, the maintained Sigil fork as the generalized inventory/equipment core, the maintained Save Extension fork as the low-level persistence engine, and the snapshot/journal/checkpoint recovery model. Implementation and support claims still require separately scoped migration issues and the accepted complete conformance matrix.
 
 ### Stage 3 — Domain architecture selection
 
@@ -77,7 +79,7 @@ Tracking: [epic #8](https://github.com/GameFusi/Unreal-Open-World-Starter/issues
 
 Combat consumes the accepted platform and shared gameplay-spine contracts plus the relevant accepted Stage 3 decisions. Stage 4 opens only after #111 records completion of the Aurora-selected Stage 3 architecture. It begins by resolving the combat-specific contract in #30 within those already accepted shared boundaries; it does not create another roadmap stage or reopen shared architecture. Issues #31–#40 then implement the firearm vertical slice.
 
-Combat issues may not create private replacements for unresolved OWS-wide inventory, equipment, action, authority, or persistence contracts. They must consume Stage 2's explicit decision about whether health, attributes, and damage are shared OWS responsibilities or Combat-owned contracts.
+Combat issues may not create private replacements for the accepted OWS-wide inventory, equipment, action, authority, vitality, affiliation, or persistence contracts. Shared primitives are owned by the Stage 2 spine; Combat owns combat-specific weapons, formulas, reactions, and presentation.
 
 ### Stage 5 — Living-world simulation
 
@@ -122,15 +124,15 @@ Existing tightly scoped maintenance, reproduction, testing, and documentation ma
 
 The accepted [City Foundation architecture](CITY_FOUNDATION_ARCHITECTURE.md) remains independently controlling for City work. Its editor/runtime split and first-party plugin boundary are compatible with the accepted OWS product shape.
 
-City import, normalization, roads, baking, streaming, cache, and validation work may continue under its accepted contract. The accepted Stage 1 product-wide rules apply wherever they do not conflict with City's controlling domain contract. Stage 2 must coordinate with City's already accepted stable-identity, server, save, and Actor-promotion requirements; their exact shared gameplay-spine ownership remains a Stage 2 interview decision. A conflict returns to Aurora for an explicit decision; no document silently overrides another accepted contract.
+City import, normalization, roads, baking, streaming, cache, and validation work may continue under its accepted contract. The accepted Stage 1 product-wide rules apply wherever they do not conflict with City's controlling domain contract. The approved Stage 2 decisions supply shared player/entity identity, action, server, and persistence semantics while City remains authoritative for source provenance, recipe epochs, logical cells, feature identity generation, Actor promotion, and cache behavior. A conflict returns to Aurora for an explicit decision; no document silently overrides another accepted contract.
 
 ## Deferred implementation and later-stage decisions
 
 Stage 1 deliberately delegates details that require their own accepted architecture or tightly scoped implementation issue:
 
 - Exact descriptor names, module inventories, loading phases, and file destinations within the accepted Platform and domain-family rules.
-- Exact public API, tag, event, data, profile, settings, and configuration schemas; Stage 2 or the owning domain architecture controls gameplay semantics.
-- The precise roles of Gameplay Abilities, Sigil Inventory, Save Extension, Character Movement Component, Mover, and other enabled foundations.
+- Exact public API, tag/event payload, profile/settings/configuration schemas, C++/Blueprint symbols, file destinations, and internal data layouts that implement the approved Stage 2 semantics.
+- The precise roles of Character Movement Component, Mover, and later domain-specific foundations not decided by Stages 1 or 2.
 - Exact asset moves, redirect inventories, Input priority values, cook chunks, optional profile contents, installer presentation, and release artifacts.
 - Detailed Character, Vehicle, Hacking, Combat, and Living World implementation technology.
 - The internal order of Character, Hacking, and Driving within Stage 3.

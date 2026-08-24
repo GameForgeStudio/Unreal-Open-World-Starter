@@ -7,7 +7,7 @@ characters, pickups, hacking objects, and future gameplay systems must consume
 this foundation rather than polling their own selection buttons or building a
 second player-side detector.
 
-This contract proves current local targeting and Activate dispatch. It does not implement the shared server-authoritative action spine planned by [Stage 2 of the OWS architecture roadmap](OWS_ARCHITECTURE_ROADMAP.md). The accepted [Stage 1 platform contract](OWS_PLATFORM_ARCHITECTURE.md) assigns selection and activation to the OWS Interaction domain and semantic input routing to OWS Input. Their current project-module placement describes `main`, not the accepted target or permission to move them outside a scoped migration issue.
+This contract proves current local targeting and Activate dispatch. It does not implement the shared server-authoritative action spine defined by the accepted [Stage 2 contract](OWS_GAMEPLAY_SPINE_ARCHITECTURE.md). The accepted [Stage 1 platform contract](OWS_PLATFORM_ARCHITECTURE.md) assigns selection and activation to the OWS Interaction domain and semantic input routing to OWS Input. Their current project-module placement describes `main`, not the accepted target or permission to move them outside a scoped migration issue.
 
 ## Passive awareness detection
 
@@ -41,7 +41,7 @@ ray's impact is the resolved target.
 
 `UOWSInteractionTargetComponent` is an editor-configurable scene component with:
 
-- A stable `InteractionId`.
+- A stable local-key `InteractionId`. In the accepted Stage 2 target, the canonical interaction-point identity is scoped as `{owner entity + interaction-point category + InteractionId}`.
 - An optional readable display name.
 - An enabled state.
 - A configurable selection radius.
@@ -80,13 +80,13 @@ path.
 ## Authority boundary
 
 Selection and focus are local presentation and produce an activation request,
-not authority over world state. A networked target that mutates the world must
-send the selected actor, interaction ID, and player identity to the server. The
-server must revalidate target identity, enabled/availability state, distance,
-permissions, occupancy, and gameplay state before applying the mutation. A
-client success event must not be treated as server authorization.
+not authority over world state. A networked mutation uses the accepted OWS
+action request and scoped target identity. The server derives the profile from
+the authenticated connection and revalidates target identity, availability,
+distance, permissions, occupancy, and gameplay state before authorizing the
+result. A client Actor pointer, supplied ID, or success event is not authority.
 
-The exact shared request, validation, prediction, failure, and persistence semantics are controlled by [issue #105](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/105). Consumer systems may not treat this local selector contract as a substitute for that architecture.
+The exact shared request, validation, prediction, failure, and persistence semantics are controlled by the accepted [Stage 2 contract](OWS_GAMEPLAY_SPINE_ARCHITECTURE.md) and [issue #105](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/105). Consumer systems may not treat this local selector contract as a substitute for that architecture.
 
 The City Foundation follows the same boundary. A cached cosmetic instance is
 never authoritative. If a generated city feature becomes interactive, OWS
