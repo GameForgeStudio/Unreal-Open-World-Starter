@@ -37,13 +37,18 @@ This section records current physical implementation. It does not override the a
 | Package contracts, profiles, settings registry, compatibility, setup, and validation | Minimal Platform family retained under `Plugins/OWSFramework` |
 | Input contexts, semantic actions, priorities, and rebinding | OWS Input domain family |
 | Selection, targeting, interactables, and activation | OWS Interaction domain family |
-| Hotbars, prompts, menus, notifications, settings presentation, and view models | OWS UI domain family |
+| Host-neutral hotbar backend source/module, prompts, menus, notifications, settings presentation, and view models | OWS UI domain family under the accepted Stage 1 physical boundary; individual hotbar instances have developer-selected hosts |
+| Shared player/entity identity, actions, GAS ownership, vitality, affiliation, events, and authority semantics | OWS Shared Gameplay family |
+| Generalized inventory and equipment implementation | Maintained Sigil Inventory fork evolving as OWS |
+| Persistence schemas, checkpoints, providers, migration, and recovery | OWS Persistence contract over the maintained Save Extension fork |
 | Complete character and traversal implementation | Maintained GASPALS fork evolving in place as the OWS Character family |
 | Complete vehicle implementation | Maintained KinetiForge fork evolving in place as the OWS Vehicle family |
 | Character/vehicle possession, entry, exit, bailout, and recovery | Narrow Character–Vehicle integration plugin family |
 | Playable composition and showcase | `Source/OWS` and `/Game/OWS` thin shell |
 
 The complete ownership and dependency matrix is maintained in [OWS_PLATFORM_ARCHITECTURE.md](OWS_PLATFORM_ARCHITECTURE.md). Target ownership is migrated one responsibility at a time with baselines, compatibility shims or redirects, and explicit verification.
+
+The accepted [OWS Shared Gameplay Spine, Authority, and Persistence Contract](OWS_GAMEPLAY_SPINE_ARCHITECTURE.md) defines the shared Stage 2 target. It does not claim that the current runtime has been migrated or that multiplayer and persistence conformance already pass.
 
 ## Accepted City Foundation target
 

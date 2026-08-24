@@ -31,7 +31,7 @@ The accepted execution order is:
 4. Combat implementation against the accepted earlier contracts.
 5. Living-world simulation.
 
-Read the canonical [OWS Platform Architecture and Composition Contract](Docs/OWS_PLATFORM_ARCHITECTURE.md) for the accepted maintained-fork model, plugin families, dependency rules, extension contract, conformance requirements, and migration backlog. The [OWS Product Architecture Roadmap](Docs/OWS_ARCHITECTURE_ROADMAP.md) defines the five-stage order and checkout gates. A planned architecture is not presented as current functionality.
+Read the canonical [OWS Platform Architecture and Composition Contract](Docs/OWS_PLATFORM_ARCHITECTURE.md) for the accepted maintained-fork model, plugin families, dependency rules, extension contract, conformance requirements, and migration backlog. The accepted [OWS Shared Gameplay Spine, Authority, and Persistence Contract](Docs/OWS_GAMEPLAY_SPINE_ARCHITECTURE.md) defines Stage 2 identity, actions, GAS, inventory/equipment, networking, persistence, recovery, notifications, and conformance. The [OWS Product Architecture Roadmap](Docs/OWS_ARCHITECTURE_ROADMAP.md) defines the five-stage order and checkout gates. A planned architecture is not presented as current functionality.
 
 ## Start
 

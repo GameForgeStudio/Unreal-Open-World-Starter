@@ -10,6 +10,12 @@ Current automation proves selected behavior inside the full OWS starter project.
 
 The compatibility-first migration backlog requires those checks to be established before reusable ownership is retired from the project shell. Until that work merges, documentation must distinguish a passing full-project integration test from reusable OWS plugin conformance.
 
+## Shared gameplay-spine conformance status
+
+The accepted [OWS Shared Gameplay Spine, Authority, and Persistence Contract](OWS_GAMEPLAY_SPINE_ARCHITECTURE.md) defines the conformance matrix for identity, action, GAS, tags/events, vitality/affiliation, inventory/equipment, authority, networking, persistence, recovery, the City boundary, notifications, and observability. The current repository does not yet implement or certify that target.
+
+Stage 2 implementation work must add automated and manual evidence for standalone, listen host, remote listen client, dedicated server, multiple clients, late join, live reconnect, and checkpoint-backed server restart. Coverage must include duplicate/rejected/interrupted actions, contention, every advertised prediction tier, exact inventory/equipment round trips, cross-record checkpoint atomicity, unloaded-cell restoration, tag-dictionary compatibility, missing content, schema migration, corruption rollback, full writable City-cache deletion, notification mapping, and structured diagnostics. Passing current local selector or character/vehicle tests is not evidence of Stage 2 conformance.
+
 ## City Foundation conformance status
 
 The accepted City Foundation target is documented in [CITY_FOUNDATION_ARCHITECTURE.md](CITY_FOUNDATION_ARCHITECTURE.md). Its importer, generators, World Partition cell orchestrator, and player cache are not yet implemented in `main`, so the repository does not yet claim executable City Foundation conformance.
