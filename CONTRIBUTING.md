@@ -40,12 +40,19 @@ If you are unsure where something belongs, start a Discussion and ask.
 ## Before you begin
 
 - Read the repository’s [README](README.md) and the issue or discussion you plan to work on.
+- Before proposing cross-system, plugin, module, authority, persistence, or major feature work, read the accepted [OWS Product Architecture Roadmap](Docs/OWS_ARCHITECTURE_ROADMAP.md).
 - Before proposing City Foundation work, read the accepted [City Foundation architecture](Docs/CITY_FOUNDATION_ARCHITECTURE.md); implementation issues may refine it but must not silently replace its contracts.
 - For a new idea, start a Discussion before doing large or architectural work.
 - For a bug or a defined task, use an existing Issue or create one with the appropriate template.
 - Work in a branch or fork. Never push directly to `main`.
 - Keep each PR focused on one purpose. Separate unrelated changes into separate PRs.
 - Before opening a code or Unreal-content PR, run the applicable checks in [Docs/TESTING.md](Docs/TESTING.md) and report the result in the PR.
+
+## Architecture and checkout gates
+
+- Check the issue's status and linked architecture blockers before claiming it.
+- An issue labeled `status: architecture gated` may collect research and requirements, but it is not available for implementation checkout until its linked contracts are accepted and Aurora opens the applicable roadmap stage.
+- Keep the claimed issue's scope exact. Record an out-of-scope discovery as a separate issue instead of following it into another contributor's area.
 
 ## Choose your route
 

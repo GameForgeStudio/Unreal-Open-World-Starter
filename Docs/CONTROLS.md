@@ -2,6 +2,8 @@
 
 This is the control reference for the configured OWS experience in `/Game/OWS/Levels/OWS_CombinedDemo`. It was verified against the Unreal Engine 5.8.1 input assets and the OWS runtime bindings on August 22, 2026.
 
+This document records current configured behavior. It does not decide the final input-routing, plugin, or module ownership governed by [Stage 1 of the OWS architecture roadmap](OWS_ARCHITECTURE_ROADMAP.md).
+
 Controller names use both PlayStation and Xbox labels: `Cross / A`, `Circle / B`, `Square / X`, `Triangle / Y`, `L1 / LB`, `R1 / RB`, `L2 / LT`, and `R2 / RT`.
 
 ## On foot

@@ -2,6 +2,12 @@
 
 OWS is the product. Its included systems and plugins are implementation foundations that OWS integrates into one starter package.
 
+## Accepted target product shape
+
+OWS is a complete, immediately playable starter project built over reusable first-party OWS plugins. The project game module and `/Game/OWS` demo content are the thin composition, integration, and demonstration shell in the accepted target architecture; reusable subsystem ownership does not remain there long-term.
+
+The exact plugin/module topology, migration destinations, public extension contracts, and adapter forms remain Stage 1 interview decisions tracked by [the OWS Product Architecture Roadmap](OWS_ARCHITECTURE_ROADMAP.md). Current placement describes `main`; it is not authorization to keep, move, or duplicate a reusable system speculatively.
+
 ## Canonical playable experience
 
 | Responsibility | OWS authority |
@@ -21,6 +27,8 @@ OWS is the product. Its included systems and plugins are implementation foundati
 Character movement owns the on-foot pawn. The active vehicle pawn owns driving physics while occupied. OWS owns the transition between those states, including interaction discovery, possession, camera handoff, safe exit placement, and recovery behavior.
 
 The OWS runtime module contains the native character/vehicle integration. The OWS Framework plugin contains reusable OWS runtime UI and settings support. Content under `/Game/OWS` supplies the canonical maps, game modes, controllers, characters, and vehicle configuration.
+
+This section records current physical implementation. It does not override the accepted target product shape or pre-decide the Stage 1 migration plan.
 
 ## Accepted City Foundation target
 

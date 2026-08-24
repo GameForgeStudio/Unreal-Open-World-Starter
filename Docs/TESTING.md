@@ -1,5 +1,9 @@
 # OWS Automated Testing
 
+## Architecture maturity rule
+
+An accepted target architecture is not an implemented capability, and a passing test for existing behavior is not evidence that a future architecture stage exists. A capability may be documented as available only when its implementation and verification are merged and tied to the tested commit. See [OWS_ARCHITECTURE_ROADMAP.md](OWS_ARCHITECTURE_ROADMAP.md) for the accepted sequence and stage gates.
+
 ## City Foundation conformance status
 
 The accepted City Foundation target is documented in [CITY_FOUNDATION_ARCHITECTURE.md](CITY_FOUNDATION_ARCHITECTURE.md). Its importer, generators, World Partition cell orchestrator, and player cache are not yet implemented in `main`, so the repository does not yet claim executable City Foundation conformance.

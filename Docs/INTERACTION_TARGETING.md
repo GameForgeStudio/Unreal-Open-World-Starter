@@ -7,6 +7,8 @@ characters, pickups, hacking objects, and future gameplay systems must consume
 this foundation rather than polling their own selection buttons or building a
 second player-side detector.
 
+This contract proves local targeting and Activate dispatch. It does not implement the shared server-authoritative action spine planned by [Stage 2 of the OWS architecture roadmap](OWS_ARCHITECTURE_ROADMAP.md). Stage 1 owns the selector's eventual first-party plugin placement; its current project-module location describes `main`, not an approved destination.
+
 ## Passive awareness detection
 
 `UOWSSelectorComponent` owns an ordered, configurable range-selector stack. The
@@ -83,6 +85,8 @@ send the selected actor, interaction ID, and player identity to the server. The
 server must revalidate target identity, enabled/availability state, distance,
 permissions, occupancy, and gameplay state before applying the mutation. A
 client success event must not be treated as server authorization.
+
+The exact shared request, validation, prediction, failure, and persistence semantics are controlled by [issue #105](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/105). Consumer systems may not treat this local selector contract as a substitute for that architecture.
 
 The City Foundation follows the same boundary. A cached cosmetic instance is
 never authoritative. If a generated city feature becomes interactive, OWS

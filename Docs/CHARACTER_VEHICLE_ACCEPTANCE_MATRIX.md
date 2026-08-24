@@ -4,6 +4,8 @@ This document defines the repeatable acceptance standard for the boundary betwee
 
 The matrix is intentionally a test specification, not a claim that every scenario already passes. Run results expose the exact gaps that must become independently actionable GitHub issues.
 
+Passing this matrix accepts the tested character/vehicle boundary only. It does not accept the package-wide plugin topology, the shared authority/persistence spine, or the full Character or Driving architecture tracked by [the OWS Product Architecture Roadmap](OWS_ARCHITECTURE_ROADMAP.md).
+
 ## Current execution target
 
 - Unreal Engine: 5.8.1

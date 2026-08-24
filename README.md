@@ -4,6 +4,8 @@ An open-source Unreal Engine package for building open-world games from a capabl
 
 > **Plays like GTA, drives like Forza Horizon, hacks like Watch Dogs.**
 
+This tagline is the OWS product north star, not a claim that every pillar is implemented today. Current implementation, accepted target architecture, and planned work are intentionally distinguished in the documentation and issue tracker.
+
 ## Requirements
 
 - Your own licensed installation of Unreal Engine. Unreal Engine itself is not included in this repository.
@@ -12,6 +14,22 @@ An open-source Unreal Engine package for building open-world games from a capabl
 - Windows contributors who build the C++ project need the Visual Studio C++ toolchain supported by Unreal Engine 5.8.
 
 The project’s third-party plugins are included under `Plugins/`. Unreal Engine’s built-in plugins remain part of the required Unreal Engine installation; they are not copied into this repository.
+
+## Product architecture roadmap
+
+OWS is a complete, immediately playable starter project built over reusable first-party OWS plugins. The project game module and demo content are the thin composition, integration, and demonstration shell; reusable subsystem ownership belongs beneath that shell in the accepted target architecture.
+
+Cross-system coherence is a product requirement: OWS systems must compose through accepted shared contracts instead of shipping as unrelated feature islands.
+
+The accepted execution order is:
+
+1. OWS platform architecture.
+2. Shared gameplay spine and authority/persistence.
+3. An Aurora-selected domain architecture: Character, Hacking, or Driving. These three currently have no internal order; Aurora chooses based on competitive parity, product differentiation, or the greatest immediately measurable improvement.
+4. Combat implementation against the accepted earlier contracts.
+5. Living-world simulation.
+
+Read the canonical [OWS Product Architecture Roadmap](Docs/OWS_ARCHITECTURE_ROADMAP.md) for the stage gates, tracking issues, checkout rules, City coordination, and decisions that remain open. A planned architecture is not presented as current functionality.
 
 ## Start
 
