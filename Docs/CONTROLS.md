@@ -61,6 +61,8 @@ function. Vehicle entry consumes the exact authored door interaction point
 already resolved by the selector. It does not run a second vehicle detector or
 choose another door after activation.
 
+This table documents the current control-seat handoff only. OWS does not yet claim supported passenger entry, exterior riding, moving entry, speed matching, infiltration, or vehicle-to-vehicle transfer. Their controls, hold/cancel behavior, assists, and transition rules remain architecture work under the selected [OWS Mobility program](OWS_MOBILITY_PROGRAM_CHARTER.md) and [issue #147](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/147).
+
 Above 5 mph through 15 mph, a moving bailout hands directly to ordinary locomotion without forcing a full-body recovery animation. Above 15 mph, the character performs a non-ragdoll controlled roll that inherits the vehicle's velocity, permits limited left-stick steering, and continues until the character reaches runnable speed before ordinary locomotion resumes. Vehicle re-entry is unavailable only while controlled recovery owns the character and becomes available when player control returns; there is no distance-based re-entry release requirement.
 
 ## Driving

@@ -734,8 +734,9 @@ interfaces from #116.
 
 Existing consumers must link to this contract and their required children:
 
-- #27 and #28 consume shared identity, action authority, contention, and network
-  conformance for Character–Vehicle entry and seat ownership.
+- #147, #27, and #28 consume shared identity, scoped seat/door/surface/anchor
+  identity, action authority, multi-owner transactions, contention, and network
+  conformance for Character–Vehicle Mobility relationships and transitions.
 - #30–#40 consume shared actions, GAS, vitality, affiliation, inventory,
   equipment, persistence, notification, and multiplayer contracts.
 - #50–#59 consume shared identity, action validation, costs/cooldowns,
@@ -743,8 +744,9 @@ Existing consumers must link to this contract and their required children:
   hacking spine.
 - #85, #96, and #100 publish and test the City identity, promotion, persistence,
   and cache boundaries consumed by the Stage 2 City adapter.
-- #107, #108, and #110 select domain-specific Character, Vehicle, and Living
-  World rules without reopening the shared spine.
+- #147 coordinates compatible Character #107 and Vehicle #108 contracts plus
+  their dynamic Mobility boundary; #110 selects Living World rules. None may
+  reopen or privately replace the shared spine.
 - #117 owns semantic Input adapters and may reference the host-neutral hotbar
   contract. #119 owns UI presentation and may present hotbar state. Neither owns
   the backend's routed gameplay authority.

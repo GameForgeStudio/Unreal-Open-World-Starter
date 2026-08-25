@@ -27,11 +27,11 @@ The accepted execution order is:
 
 1. OWS platform architecture.
 2. Shared gameplay spine and authority/persistence.
-3. An Aurora-selected domain architecture: Character, Hacking, or Driving. These three currently have no internal order; Aurora chooses based on competitive parity, product differentiation, or the greatest immediately measurable improvement.
+3. The Aurora-selected **OWS Mobility** architecture program: Character and Vehicle are co-designed with their dynamic Character–Vehicle relationship while remaining independently buildable domains. Systemic Hacking remains the preserved, still-gated Stage 3 program.
 4. Combat implementation against the accepted earlier contracts.
 5. Living-world simulation.
 
-Read the canonical [OWS Platform Architecture and Composition Contract](Docs/OWS_PLATFORM_ARCHITECTURE.md) for the accepted maintained-fork model, plugin families, dependency rules, extension contract, conformance requirements, and migration backlog. The accepted [OWS Shared Gameplay Spine, Authority, and Persistence Contract](Docs/OWS_GAMEPLAY_SPINE_ARCHITECTURE.md) defines Stage 2 identity, actions, GAS, inventory/equipment, networking, persistence, recovery, notifications, and conformance. The [OWS Product Architecture Roadmap](Docs/OWS_ARCHITECTURE_ROADMAP.md) defines the five-stage order and checkout gates. A planned architecture is not presented as current functionality.
+Read the canonical [OWS Platform Architecture and Composition Contract](Docs/OWS_PLATFORM_ARCHITECTURE.md) for the accepted maintained-fork model, plugin families, dependency rules, extension contract, conformance requirements, and migration backlog. The accepted [OWS Shared Gameplay Spine, Authority, and Persistence Contract](Docs/OWS_GAMEPLAY_SPINE_ARCHITECTURE.md) defines Stage 2 identity, actions, GAS, inventory/equipment, networking, persistence, recovery, notifications, and conformance. The [OWS Product Architecture Roadmap](Docs/OWS_ARCHITECTURE_ROADMAP.md) defines the five-stage order and checkout gates. The accepted [OWS Mobility Program Charter](Docs/OWS_MOBILITY_PROGRAM_CHARTER.md) records the active Stage 3 selection and design constraints; its final architecture remains open under issue #147. A planned architecture is not presented as current functionality.
 
 ## Start
 
