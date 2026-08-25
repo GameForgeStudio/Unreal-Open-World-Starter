@@ -18,9 +18,9 @@ Stage 2 implementation work must add automated and manual evidence for standalon
 
 ## OWS Mobility conformance status
 
-Aurora selected the [OWS Mobility program](OWS_MOBILITY_PROGRAM_CHARTER.md), but its final architecture and complete matrix remain open under [issue #147](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/147). Current automation proves only the existing exact-door entry, stopped exit, moving bailout, controlled-roll, recovery, and re-entry baseline. It does not prove passenger support, exterior riding, authored standable zones or handholds, crouch/balance behavior, sliding or forced detachment, moving entry, speed matching, infiltration, vehicle-to-vehicle transfer, authoritative reservations, or Vehicle/Character network correction without double-applied motion.
+The accepted [OWS Mobility Architecture](OWS_MOBILITY_ARCHITECTURE.md) and complete [Mobility Acceptance Matrix](OWS_MOBILITY_ACCEPTANCE_MATRIX.md) define Stage 3 behavior and proof. Current automation proves only the existing exact-door entry, stopped exit, moving bailout, controlled-roll, recovery, and re-entry baseline. It does not prove passenger support, exterior riding, authored standable zones or handholds, crouch/balance behavior, sliding or forced detachment, moving entry, relative-motion matching, infiltration, cross-Vehicle transfer, authoritative reservations, or Vehicle/Character network correction without double-applied motion.
 
-The final #147 matrix must add separate local and declared-network evidence for every accepted relationship, transition, failure, interruption, contention, late-join, disconnect, destruction, and recovery case. Until those scoped implementations and tests merge, no current incidental moving-floor or moving-entry behavior is an OWS support claim.
+The target matrix requires separate local and declared-network evidence for every accepted relationship, transition, failure, interruption, contention, late-join, disconnect, destruction, and recovery case. Until those scoped implementations and tests merge, no current incidental moving-floor or moving-entry behavior is an OWS support claim.
 
 ## City Foundation conformance status
 
@@ -96,7 +96,7 @@ The suite verifies:
 
 Before merging gameplay changes, manually smoke-test one stopped exit, a 5–15 mph bailout, and controlled rolls at both moderate and high speed in `/Game/OWS/Levels/OWS_CombinedDemo`. Confirm the lower-speed bailout does not force a landing or stumble animation; confirm the roll loops until runnable speed, left-stick steering is limited but useful, locomotion resumes directly, and the camera remains aligned. After each exit or recovery, verify vehicle re-entry, locomotion (including analog walk/shuffle and sprint), traversal, aiming, hotbar/equipment/abilities, camera input, and collision. Those feature-level actions require player input and are not claimed by the automation suite.
 
-Multiplayer is a separate explicit test tier. The controlling Mobility architecture is tracked by [issue #147](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/147); later server-authoritative transition implementation is tracked by [issue #27](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/27), and seat/anchor contention and recovery coverage is tracked by [issue #28](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/28). This local editor suite does not claim multiplayer acceptance.
+Multiplayer is a separate explicit test tier governed by the accepted Mobility architecture and matrix. Later server-authoritative action transport is tracked by [issue #27](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/27), and seat/anchor contention and recovery coverage is tracked by [issue #28](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/28). This local editor suite does not claim multiplayer acceptance.
 
 ## Selector and activation tests
 

@@ -275,6 +275,7 @@ The cooked foundation defines baseline collision, navigation, gameplay anchors, 
 - Save data stores player/world deltas, recipe epoch, and mutations keyed by stable feature IDs; it never relies on cache residency.
 - Cache data is disposable and remains logically separate from every profile and save slot.
 - Generator changes that cannot preserve stable IDs require an explicit migration, tombstone mapping, or retained compatibility epoch.
+- City Foundation supplies stable world/road/surface identities and World Partition cell ownership but never owns a Mobility relationship. Active related Characters, Vehicles, and required graph data remain co-relevant and co-streamed. A stable relationship survives cell migration only when every participant and graph identity migrates and revalidates; otherwise Mobility performs governed termination/recovery before separation.
 
 ## Implementation conformance invariants
 
