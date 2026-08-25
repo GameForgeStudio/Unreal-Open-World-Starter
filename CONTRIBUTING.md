@@ -40,7 +40,7 @@ If you are unsure where something belongs, start a Discussion and ask.
 ## Before you begin
 
 - Read the repository’s [README](README.md) and the issue or discussion you plan to work on.
-- Before proposing cross-system, plugin, module, input, settings, content-ownership, cooking, compatibility, or major feature work, read the accepted [OWS Platform Architecture and Composition Contract](Docs/OWS_PLATFORM_ARCHITECTURE.md) and [OWS Product Architecture Roadmap](Docs/OWS_ARCHITECTURE_ROADMAP.md).
+- Before proposing cross-system, plugin, module, input, settings, content-ownership, cooking, compatibility, authority, persistence, or major feature work, read the accepted [OWS Platform Architecture and Composition Contract](Docs/OWS_PLATFORM_ARCHITECTURE.md), [OWS Shared Gameplay Spine, Authority, and Persistence Contract](Docs/OWS_GAMEPLAY_SPINE_ARCHITECTURE.md), and [OWS Product Architecture Roadmap](Docs/OWS_ARCHITECTURE_ROADMAP.md).
 - Before proposing City Foundation work, read the accepted [City Foundation architecture](Docs/CITY_FOUNDATION_ARCHITECTURE.md); implementation issues may refine it but must not silently replace its contracts.
 - For a new idea, start a Discussion before doing large or architectural work.
 - For a bug or a defined task, use an existing Issue or create one with the appropriate template.
