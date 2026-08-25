@@ -59,7 +59,7 @@ Stage 2 defines the shared semantics that characters, vehicles, interaction, com
 
 Stage 2 has approved how OWS uses enabled foundations such as Gameplay Abilities, Sigil Inventory, and Save Extension. Their presence in the project did not pre-decide their OWS-facing responsibilities and does not permit consumer systems to expose their internal APIs as the OWS contract.
 
-The accepted [OWS Shared Gameplay Spine, Authority, and Persistence Contract](OWS_GAMEPLAY_SPINE_ARCHITECTURE.md) establishes PlayerState-centered player identity, stable definition/entity/scoped IDs, the shared OWS action/event/tag language, the two-host GAS model, shared vitality and affiliation primitives, the maintained Sigil fork as the generalized inventory/equipment core, the maintained Save Extension fork as the low-level persistence engine, and the snapshot/journal/checkpoint recovery model. Implementation and support claims still require separately scoped migration issues and the accepted complete conformance matrix.
+The accepted [OWS Shared Gameplay Spine, Authority, and Persistence Contract](OWS_GAMEPLAY_SPINE_ARCHITECTURE.md) establishes permanent OWS Player Profile identity with a PlayerState-centered live-session projection, stable definition/entity/scoped IDs, the shared OWS action/event/tag language, the two-host GAS model, shared vitality and affiliation primitives, the maintained Sigil fork as the generalized inventory/equipment core, the maintained Save Extension fork as the low-level persistence engine, and the snapshot/journal/checkpoint recovery model. Implementation and support claims still require separately scoped migration issues and the accepted complete conformance matrix.
 
 ### Stage 3 — Domain architecture selection
 

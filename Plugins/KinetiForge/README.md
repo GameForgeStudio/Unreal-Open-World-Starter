@@ -1,5 +1,8 @@
 # KinetiForge-Vehicle-System
 
+> [!IMPORTANT]
+> This README is retained with the maintained KinetiForge fork as upstream standalone reference material. OWS users do not install or configure KinetiForge separately: the version-matched maintained fork is already included and configured as part of the complete OWS bundle. Follow the root [OWS README](../../README.md) for OWS installation and startup. The standalone setup and migration instructions below are not the OWS installation path.
+
 High-performance, modular vehicle physics system for Unreal Engine 5, fully implemented in C++ with real-time tunable parameters.
 
 * Demonstration videos:

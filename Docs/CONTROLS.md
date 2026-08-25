@@ -52,7 +52,7 @@ Without a shoulder modifier, D-pad left and right cycle the placed OWS character
 
 | State | Keyboard | Controller | Behavior |
 | --- | --- | --- | --- |
-| On foot near an enterable vehicle | Tap `F` | Tap `Square / X` | Enter the nearest valid driver seat within range. |
+| On foot with an available vehicle-door interaction point targeted | Tap `F` | Tap `Square / X` | Enter through that exact authored door when it is within range and its control seat is available. |
 | Driving at or below 5 mph | Tap `Escape` | Tap `Circle / B` | Exit at a safe stopped-exit location. |
 | Driving above 5 mph | Hold `Escape` for 2 seconds | Hold `Circle / B` for 2 seconds | Bail out once the hold completes. Releasing early cancels the request. |
 
@@ -61,7 +61,7 @@ function. Vehicle entry consumes the exact authored door interaction point
 already resolved by the selector. It does not run a second vehicle detector or
 choose another door after activation.
 
-After a moving bailout, the character ragdolls and recovers automatically. Immediate re-entry into that vehicle is blocked until the character first moves more than 550 cm away.
+Above 5 mph through 15 mph, a moving bailout hands directly to ordinary locomotion without forcing a full-body recovery animation. Above 15 mph, the character performs a non-ragdoll controlled roll that inherits the vehicle's velocity, permits limited left-stick steering, and continues until the character reaches runnable speed before ordinary locomotion resumes. Vehicle re-entry is unavailable only while controlled recovery owns the character and becomes available when player control returns; there is no distance-based re-entry release requirement.
 
 ## Driving
 
