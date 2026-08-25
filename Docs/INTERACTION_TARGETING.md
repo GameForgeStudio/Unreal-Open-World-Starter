@@ -73,6 +73,8 @@ does not change any entry or exit transform. Selecting the driver-side point
 passes that exact Door ID through Activate to vehicle entry. The gameplay path
 does not run the legacy vehicle-wide overlap/facing search after activation.
 
+This selector contract chooses the requested interaction point; it does not decide whether a moving boarding, passenger, grip, infiltration, or transfer action is physically or authoritatively valid. The selected [OWS Mobility program](OWS_MOBILITY_PROGRAM_CHARTER.md) and issue #147 own relative point motion, approach, clearance, capability, occupancy/control role, reservation, interruption, and transition rules. Current `main` still accepts only the control-seat handoff described by the existing implementation and must not be presented as supported moving entry.
+
 The nearest-vehicle search remains available only to the explicitly named
 `DebugEnterNearestVehicle` automation/debug helper. It is not a player input
 path.
@@ -86,7 +88,7 @@ the authenticated connection and revalidates target identity, availability,
 distance, permissions, occupancy, and gameplay state before authorizing the
 result. A client Actor pointer, supplied ID, or success event is not authority.
 
-The exact shared request, validation, prediction, failure, and persistence semantics are controlled by the accepted [Stage 2 contract](OWS_GAMEPLAY_SPINE_ARCHITECTURE.md) and [issue #105](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/105). Consumer systems may not treat this local selector contract as a substitute for that architecture.
+The exact shared request, validation, prediction, failure, and persistence semantics are controlled by the accepted [Stage 2 contract](OWS_GAMEPLAY_SPINE_ARCHITECTURE.md). Mobility consumers additionally follow [issue #147](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/147) and its eventual accepted matrix. Consumer systems may not treat this local selector contract as a substitute for either architecture.
 
 The City Foundation follows the same boundary. A cached cosmetic instance is
 never authoritative. If a generated city feature becomes interactive, OWS

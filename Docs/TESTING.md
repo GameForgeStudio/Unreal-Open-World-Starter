@@ -16,6 +16,12 @@ The accepted [OWS Shared Gameplay Spine, Authority, and Persistence Contract](OW
 
 Stage 2 implementation work must add automated and manual evidence for standalone, listen host, remote listen client, dedicated server, multiple clients, late join, live reconnect, and checkpoint-backed server restart. Coverage must include duplicate/rejected/interrupted actions, contention, every advertised prediction tier, exact inventory/equipment round trips, cross-record checkpoint atomicity, unloaded-cell restoration, tag-dictionary compatibility, missing content, schema migration, corruption rollback, full writable City-cache deletion, notification mapping, and structured diagnostics. Passing current local selector or character/vehicle tests is not evidence of Stage 2 conformance.
 
+## OWS Mobility conformance status
+
+Aurora selected the [OWS Mobility program](OWS_MOBILITY_PROGRAM_CHARTER.md), but its final architecture and complete matrix remain open under [issue #147](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/147). Current automation proves only the existing exact-door entry, stopped exit, moving bailout, controlled-roll, recovery, and re-entry baseline. It does not prove passenger support, exterior riding, authored standable zones or handholds, crouch/balance behavior, sliding or forced detachment, moving entry, speed matching, infiltration, vehicle-to-vehicle transfer, authoritative reservations, or Vehicle/Character network correction without double-applied motion.
+
+The final #147 matrix must add separate local and declared-network evidence for every accepted relationship, transition, failure, interruption, contention, late-join, disconnect, destruction, and recovery case. Until those scoped implementations and tests merge, no current incidental moving-floor or moving-entry behavior is an OWS support claim.
+
 ## City Foundation conformance status
 
 The accepted City Foundation target is documented in [CITY_FOUNDATION_ARCHITECTURE.md](CITY_FOUNDATION_ARCHITECTURE.md). Its importer, generators, World Partition cell orchestrator, and player cache are not yet implemented in `main`, so the repository does not yet claim executable City Foundation conformance.
@@ -90,7 +96,7 @@ The suite verifies:
 
 Before merging gameplay changes, manually smoke-test one stopped exit, a 5–15 mph bailout, and controlled rolls at both moderate and high speed in `/Game/OWS/Levels/OWS_CombinedDemo`. Confirm the lower-speed bailout does not force a landing or stumble animation; confirm the roll loops until runnable speed, left-stick steering is limited but useful, locomotion resumes directly, and the camera remains aligned. After each exit or recovery, verify vehicle re-entry, locomotion (including analog walk/shuffle and sprint), traversal, aiming, hotbar/equipment/abilities, camera input, and collision. Those feature-level actions require player input and are not claimed by the automation suite.
 
-Multiplayer is a separate explicit test tier. Server-authoritative transitions are tracked by [issue #27](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/27), and seat-contention/recovery coverage is tracked by [issue #28](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/28). This local editor suite does not claim multiplayer acceptance.
+Multiplayer is a separate explicit test tier. The controlling Mobility architecture is tracked by [issue #147](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/147); later server-authoritative transition implementation is tracked by [issue #27](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/27), and seat/anchor contention and recovery coverage is tracked by [issue #28](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/28). This local editor suite does not claim multiplayer acceptance.
 
 ## Selector and activation tests
 

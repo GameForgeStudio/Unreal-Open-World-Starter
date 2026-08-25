@@ -4,7 +4,11 @@ This document defines the repeatable acceptance standard for the boundary betwee
 
 The matrix is intentionally a test specification, not a claim that every scenario already passes. Run results expose the exact gaps that must become independently actionable GitHub issues.
 
-Passing this matrix accepts the tested character/vehicle behavior only. It does not prove that current code conforms to the accepted [OWS Platform Architecture and Composition Contract](OWS_PLATFORM_ARCHITECTURE.md), implements the shared authority/persistence spine, or establishes the full Character or Driving architecture tracked by the [OWS Product Architecture Roadmap](OWS_ARCHITECTURE_ROADMAP.md).
+Passing this matrix accepts the tested current character/vehicle behavior only. It does not prove that current code conforms to the accepted [OWS Platform Architecture and Composition Contract](OWS_PLATFORM_ARCHITECTURE.md), implements the shared authority/persistence spine, or establishes the selected [OWS Mobility architecture program](OWS_MOBILITY_PROGRAM_CHARTER.md) tracked by [issue #147](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/147).
+
+## Stage 3 Mobility expansion status
+
+This document preserves the verified pre-architecture baseline. #147 must expand or supersede it with accepted scenarios for passengers and control roles; authored standable zones, crouch/balance, sliding, active grip, hanging, and forced detachment; moving entry and relative-speed matching; same-vehicle exterior/interior infiltration; vehicle-to-vehicle transfer; collision and failed-transition outcomes; authoritative reservation/contention; Vehicle/Character correction without double-applied motion; late join, disconnect, destruction, and recovery. Those capabilities remain planned rather than implemented until their scoped work and declared evidence pass.
 
 ## Current execution target
 
@@ -120,7 +124,7 @@ Run CV-ENV-001 and all CV-FOOT scenarios once per character before using that ch
 | CV-FOOT-005 | Toggle strafe and aim while stationary and moving; release each input. | Facing and locomotion follow the selected mode; releasing input restores the prior mode without lock. | Video or detailed observation. |
 | CV-FOOT-006 | Trigger ragdoll while stationary and moving, then recover. | Ragdoll engages once, reacts to momentum and ground, and recovers to a controllable, correctly oriented character. | Video including recovery. |
 | CV-FOOT-007 | Cycle through the complete character roster and return to the starting character. | Each listed variant becomes playable exactly once per cycle and retains the OWS movement feature set. | One roster-cycle video or screenshot sequence. |
-| CV-FOOT-008 | Walk, sprint, jump, crouch, aim, and attempt traversal against a parked representative vehicle from multiple sides. | Ordinary movement collides cleanly. No action causes penetration, explosive impulse, loss of control, or unintended possession. The exact traversal response is `BLOCKED` until [issue #21](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/21) records the intended collision/traversal contract. | Video naming character, vehicle, and approach sides; blocker link for the traversal sub-result. |
+| CV-FOOT-008 | Walk, sprint, jump, crouch, aim, and attempt traversal against a parked representative vehicle from multiple sides. | Ordinary movement collides cleanly. No action causes penetration, explosive impulse, loss of control, or unintended possession. The exact traversal response is `BLOCKED` until [#147](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/147) and [#21](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/21) accept the Mobility and collision/traversal contracts. | Video naming character, vehicle, and approach sides; blocker links for the traversal sub-result. |
 | CV-FOOT-009 | Enter the supported strafe state, then press R3 while stationary and moving. | R3 toggles the OWS camera shoulder without changing camera style, locomotion mode, or character control. | Video showing both shoulder positions while stationary and moving. |
 
 ## Core character/vehicle loop
@@ -188,7 +192,7 @@ Run every scenario for every character × representative vehicle. Run CV-BAIL-00
 
 ## Impact and shared-physics matrix
 
-Run every scenario with C01 against every representative vehicle, then repeat with C02-C03 against V04, V13, and V14. If character response depends on an unresolved collision threshold or reaction policy, mark only that response detail `BLOCKED` on [issue #21](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/21); still evaluate the universal safety invariants.
+Run every scenario with C01 against every representative vehicle, then repeat with C02-C03 against V04, V13, and V14. If character response depends on an unresolved Mobility relationship or collision threshold/reaction policy, mark only that response detail `BLOCKED` on [#147](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/147) or [#21](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/21) as applicable; still evaluate the universal safety invariants.
 
 | ID | Setup and action | Expected behavior | Required evidence |
 | --- | --- | --- | --- |
@@ -197,7 +201,7 @@ Run every scenario with C01 against every representative vehicle, then repeat wi
 | CV-IMPACT-003 | Repeat the character strike at materially higher speed in a controlled clear area. | Higher-energy contact remains finite; character and vehicle stay in-world and recoverable. Exact damage/knockdown response is governed by issue #21. | Video and contract status. |
 | CV-IMPACT-004 | Strike a character who is crouched, aiming, and manually ragdolled in separate runs. | No starting state creates penetration, explosive impulse, invalid animation/physics blending, or permanent input loss. | State-by-state video. |
 | CV-IMPACT-005 | Pin the character between a slowly moving vehicle and a rigid wall, then reverse the vehicle away. | No crash or explosive response occurs. After pressure is removed, the character can recover to a valid controllable state. Precise injury response is governed by issue #21. | Continuous video. |
-| CV-IMPACT-006 | Place the character on the hood/roof, then begin moving, turning, and braking. | Character and vehicle remain physically finite; no penetration or invalid attachment occurs. Whether and when the character slides, falls, or ragdolls is governed by issue #21. | Continuous video and contract status. |
+| CV-IMPACT-006 | Place the character on the hood/roof, then begin moving, turning, and braking. | Character and vehicle remain physically finite; no penetration or invalid attachment occurs. Supported surface eligibility, crouch/balance, slide, grip, edge departure, and forced-detachment behavior remain `BLOCKED` until #147/#21 accept the complete relationship and force-response rules. | Continuous video and contract status. |
 | CV-IMPACT-007 | Land an airborne vehicle near and in contact with a character in a controlled test area. | Contact does not crash, tunnel through the world, corrupt possession, or leave either actor in an unrecoverable state. Precise character response is governed by issue #21. | Video. |
 | CV-IMPACT-008 | Roll a vehicle into or immediately beside a character. | Repeated body contact remains finite; character cannot become permanently embedded in the vehicle; recovery remains possible after separation. | Video. |
 

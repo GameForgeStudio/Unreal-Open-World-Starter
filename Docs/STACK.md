@@ -43,12 +43,14 @@ This section records current physical implementation. It does not override the a
 | Persistence schemas, checkpoints, providers, migration, and recovery | OWS Persistence contract over the maintained Save Extension fork |
 | Complete character and traversal implementation | Maintained GASPALS fork evolving in place as the OWS Character family |
 | Complete vehicle implementation | Maintained KinetiForge fork evolving in place as the OWS Vehicle family |
-| Character/vehicle possession, entry, exit, bailout, and recovery | Narrow Character–Vehicle integration plugin family |
+| Character/vehicle dynamic support and riding, boarding, occupancy/control handoff, exit, bailout, recovery/re-entry, exterior traversal, grip, moving entry, infiltration, transfer, reservations, and multiplayer orchestration | Narrow Character–Vehicle Mobility integration plugin family governed by the selected Stage 3 program |
 | Playable composition and showcase | `Source/OWS` and `/Game/OWS` thin shell |
 
 The complete ownership and dependency matrix is maintained in [OWS_PLATFORM_ARCHITECTURE.md](OWS_PLATFORM_ARCHITECTURE.md). Target ownership is migrated one responsibility at a time with baselines, compatibility shims or redirects, and explicit verification.
 
 The accepted [OWS Shared Gameplay Spine, Authority, and Persistence Contract](OWS_GAMEPLAY_SPINE_ARCHITECTURE.md) defines the shared Stage 2 target. It does not claim that the current runtime has been migrated or that multiplayer and persistence conformance already pass.
+
+The accepted [OWS Mobility Program Charter](OWS_MOBILITY_PROGRAM_CHARTER.md) records the active Stage 3 design program. Current `main` still provides only the verified entry/exit/bailout baseline described above; it does not yet implement passengers, supported exterior riding, moving entry, infiltration, or vehicle-to-vehicle transfer.
 
 ## Accepted City Foundation target
 
