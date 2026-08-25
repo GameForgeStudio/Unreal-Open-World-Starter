@@ -1,6 +1,6 @@
 # OWS Mobility Program Charter
 
-> **Status:** Accepted Stage 3 program selection and design brief. Aurora selected OWS Mobility on 2026-08-24. The final Mobility architecture, acceptance matrix, implementation technology, tuning values, and support claims remain open under [issue #147](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/147).
+> **Status:** Accepted Stage 3 program selection and design brief. Aurora selected OWS Mobility on 2026-08-24 and closed the architecture interview and explicitly accepted its [architecture](OWS_MOBILITY_ARCHITECTURE.md), [acceptance matrix](OWS_MOBILITY_ACCEPTANCE_MATRIX.md), and reconciled backlog on 2026-08-25. Implementation, evidence-derived tuning, and support claims remain separately gated under their exact owning issues.
 
 ## Purpose
 
@@ -8,14 +8,16 @@ This charter records why Character and Vehicle architecture must be designed tog
 
 This is an architecture-program contract, not evidence that exterior riding, passengers, moving entry, infiltration, or vehicle-to-vehicle transfer exists in `main`.
 
+The accepted [OWS Mobility Architecture](OWS_MOBILITY_ARCHITECTURE.md) defines the target design, and the accepted [OWS Mobility Acceptance Matrix](OWS_MOBILITY_ACCEPTANCE_MATRIX.md) defines its proof and support-claim rules. This charter remains the accepted program-selection and gate record.
+
 ## Stage 3 selection
 
 Stage 3 now contains two architecture programs:
 
-1. **OWS Mobility — selected and active.** Character, Vehicle, and their dynamic relationship are co-designed through #147, Character #106/#107, Vehicle #9/#108, collision/force response #21, benchmark #41, authoring #48, and later integration implementation/migration #120.
+1. **OWS Mobility — selected and active.** Character, Vehicle, and their dynamic relationship are co-designed through #147, Character #106/#107, Vehicle #9/#108, collision/force response #21, benchmark #41, Vehicle tuning #48, graph runtime/editor #155/#156, and the decomposed integration implementation/migration family #120.
 2. **Systemic Hacking — preserved and gated.** #10/#50 remains a complete later Stage 3 program. Selecting Mobility does not cancel, narrow, or silently defer its product goal beyond its explicit gate.
 
-[Issue #111](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/111) records completion of the selected program and prevents Stage 4 Combat from opening until Aurora accepts the Mobility architecture and acceptance matrix and explicitly opens Stage 4.
+[Issue #111](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/111) records the remaining Mobility program gates and prevents Stage 4 Combat from opening until Aurora explicitly opens Stage 4.
 
 ## Why Mobility is one coordinated program
 
@@ -44,7 +46,7 @@ Existing verified behavior remains protected until an accepted replacement path 
 | --- | --- |
 | **OWS Character** | Bodily locomotion, stance, balance and grip capability, animation, traversal, falling, rolling/tumbling, recovery, and Character-side prediction/presentation. |
 | **OWS Vehicle** | Vehicle simulation, collision bodies, linear/angular and point kinematics, seats, control roles, doors, portals, standable zones, edges, handholds, capacities, stable scoped identities, and Vehicle-side authoring/validation. |
-| **OWS Character–Vehicle Mobility** | The relationship and transitions between domains: dynamic support, exterior riding, gripping, boarding, moving entry, passenger/driver handoff, infiltration, transfer, detachment, reservations, Mobility-specific server coordination through the shared Stage 2 authority framework, and cross-domain recovery orchestration. |
+| **OWS Character–Vehicle Mobility** | The relationship and transitions between domains: dynamic support, exterior riding, gripping, boarding, moving entry, passenger/driver handoff, infiltration, transfer, detachment, reservations, Mobility-specific server coordination through the shared Stage 2 authority framework, and cross-domain recovery orchestration. Integration coordinates relationship, load, and relationship-specific collision state; Character executes bodily motion and Vehicle applies accepted simulation forces through public contracts. |
 
 No boundary owns duplicate state from another domain. Character and Vehicle must each build and load without the Integration family. Integration consumes both supported public contracts, plus shared OWS contracts, and cannot become a gameplay catch-all or replace the Stage 2 authority framework.
 
@@ -54,7 +56,7 @@ Player identity, physical character embodiment, occupancy, camera/presentation, 
 
 The architecture must be capable of representing:
 
-- standing, walking, crouching, jumping, sliding, and falling on or from accepted moving vehicle surfaces;
+- standing, walking, crouching, crawling where geometry permits, jumping, sliding, and falling on or from accepted moving vehicle surfaces;
 - passive balance and an explicitly authored active-hold/grip path;
 - progressive instability, bracing, sliding, reachable grip or hanging, grip failure, edge departure, airborne motion, and recovery;
 - entry into stopped and moving vehicles through the selected door, portal, handhold, or transition path;
@@ -63,9 +65,9 @@ The architecture must be capable of representing:
 - movement from an exterior surface into the same vehicle's interior;
 - movement from one vehicle's interior or exterior to another vehicle's exterior or interior;
 - deliberate infiltration attempts, safe rejection, interruption, contention, and physically coherent failure; and
-- an authority model that does not preclude later NPC/AI consumers; whether the first supported slice includes NPC/AI use remains an interview decision.
+- player and NPC control sources using the same Character, actions, capabilities, animation, physics, graph, requests, authority, and outcomes, with developer-configurable NPC presets rather than a second implementation.
 
-This capability envelope requires an extensible system; it does not mean every transition, carrier type, animation, or assist profile ships in the first implementation slice.
+This capability envelope requires an extensible system. The first supported slice includes the three accepted Balanced, Cinematic, and Simulation profiles and the complete same-Vehicle loop; other carrier classes, cross-Vehicle runtime certification, and unadvertised presentation variants remain separately gated.
 
 ## Accepted physical principles
 
@@ -93,7 +95,7 @@ Consequently:
 - crouching may improve the accepted balance and wind envelope but cannot become magical adhesion; and
 - forced separation preserves the character's actual world velocity immediately before release—including its motion relative to the support—and applies any new contact or release impulse exactly once rather than resetting to point velocity, double-applying an impulse, or adding an unexplained teleport or launch.
 
-Exact thresholds, curves, force models, assists, automatic edge-catching, grip input, stamina behavior, damage consequences, and animation choices remain interview decisions in #147.
+The accepted decisions require the branching physical response, two-way coupling, dedicated Grip, optional stamina provider, capability-driven edge catch, profile and accessibility separation, and context-correct animation requirements in the accepted architecture. Exact response curves and certified engineering ranges remain evidence-derived work in their owning implementation and benchmark issues.
 
 ## Authored mobility graph
 
@@ -105,7 +107,7 @@ Each compatible vehicle can contribute a data-authored mobility graph containing
 - seats, control roles, and finite-capacity positions;
 - valid directed transitions between locations;
 - approach and clearance volumes;
-- alignment, animation-recipe, and fallback-presentation data; whether Motion Warping or another alignment mechanism is used remains an interview decision;
+- neutral recipe IDs and alignment metadata, with Motion Warping as the default provider behind a replaceable adapter and no unrelated-animation fallback; Vehicle never owns Character animation assets;
 - supported force, stance, capability, and transition envelopes; and
 - stable scoped identities, versioning, validation, visualization, and diagnostics.
 
@@ -113,10 +115,10 @@ Ordinary movement may use explicitly accepted physical surfaces. Precise boardin
 
 ## Authority and networking constraints
 
-- Clients submit Mobility intent; the server validates identity, current relation, target scoped IDs, relative motion, permissions, capability, clearance, occupancy, transition state, and whatever temporal/latency policy #147 accepts. The exact history and rewind mechanism remains open.
+- Authenticated clients submit idempotent Mobility intent with mapped client time; NPC/server sources submit the same semantic Actions with authoritative server time. The server validates identity, relationship revision, target scoped IDs, same-time relative motion, permissions, capability, clearance, occupancy, reservations, and transition state against synchronized authoritative history and current commit-time availability.
 - Finite seats, grip anchors, portals, and conflicting transitions use authoritative reservation, revision, idempotency, contention, and release rules.
 - Each discrete multi-owner reservation, relationship, occupancy, and control-grant mutation is atomic under the Stage 2 transaction rules. A physical in-flight transfer is continuous and cannot be rolled back after launch; interruption or missed capture commits the appropriate airborne/failure state instead.
-- Exterior movement prediction and correction must prevent Vehicle and Character motion from being applied twice. Whether the implementation uses a host-relative representation, another reference-frame scheme, or no prediction for a declared tier remains open in #147.
+- The owning participant predicts continuous Character motion only inside an authorized relationship; proxies interpolate authoritative support-relative state, and corrections are measured in the authoritative support frame so Vehicle and Character motion cannot be applied twice.
 - Late join, disconnect, destruction, relevance loss, possession/control loss, and interrupted animation must converge on one valid relationship and release stale reservations.
 - Unsupported network modes remain explicitly unsupported until their complete matrix passes.
 
@@ -124,26 +126,28 @@ Ordinary movement may use explicitly accepted physical surfaces. Precise boardin
 
 | Work | Owner |
 | --- | --- |
-| Joint audit, research, interviews, architecture, and complete matrix | [#147](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/147) |
+| Joint audit, research, accepted decision record, architecture, and complete matrix | [#147](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/147) |
 | Character public contract and conformance contribution | [#107](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/107) |
 | Vehicle public contract and conformance contribution | [#108](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/108) |
 | Collision, stability, slide, grip-load, impact, and detachment response | [#21](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/21) |
 | Driving and point-kinematic benchmark evidence | [#41](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/41) |
-| Vehicle-owned tuning and Mobility structure authoring | [#48](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/48), or a later separately accepted companion issue when ownership falls outside Vehicle |
+| Vehicle-owned driving tuning | [#48](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/48) |
+| Vehicle Mobility graph runtime and editor authoring | #155/#156 under #108 |
+| Integration cross-domain route/recipe resolver | #160 under #120 |
 | Cross-domain implementation and compatibility-first migration | [#120](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/120) after all controlling contracts exist |
-| Server-authoritative transition and contention consumer slices | [#27](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/27) and [#28](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/28) after architecture acceptance |
+| Server-authoritative transition and contention consumer slices | [#27](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/27) and [#28](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/28) after their exact issue gates and prerequisites are satisfied |
 
 ## Program exit gate
 
-The Mobility architecture program is not accepted merely because this charter exists. Before #111 can record its completion:
+Acceptance of the Mobility architecture does not finish the broader Stage 3 execution gate. #111 records each remaining gate independently:
 
-1. the existing implementation and capability inventory is complete;
-2. current Unreal, physics, product, animation, authoring, accessibility, AI, and multiplayer research is recorded;
-3. Aurora answers every consequential open choice;
-4. a canonical final Mobility architecture and complete acceptance matrix are accepted;
-5. #107 and #108 publish compatible public contracts and independent conformance requirements;
-6. #21, #41, #48, #120, and every affected implementation issue are reconciled; and
-7. Aurora explicitly opens Stage 4 Combat.
+1. [x] the existing implementation and capability inventory is classified, including explicit unverified/unsupported gaps;
+2. [x] current Unreal, physics, product, animation, authoring, accessibility, AI, and multiplayer research is recorded;
+3. [x] Aurora answered every consequential open choice;
+4. [x] Aurora explicitly accepts the assembled canonical Mobility architecture, complete matrix, and backlog;
+5. [ ] #107 and #108 publish their broader compatible public contracts and independent conformance requirements against the accepted Mobility contribution;
+6. [ ] #21, #41, #48, #120, and implementation/evidence children #150–#168 are reconciled and merged as their roadmap gates require; and
+7. [ ] Aurora separately opens Stage 4 Combat.
 
 ## Not authorized by this charter
 

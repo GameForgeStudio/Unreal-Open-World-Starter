@@ -4,11 +4,11 @@ This document defines the repeatable acceptance standard for the boundary betwee
 
 The matrix is intentionally a test specification, not a claim that every scenario already passes. Run results expose the exact gaps that must become independently actionable GitHub issues.
 
-Passing this matrix accepts the tested current character/vehicle behavior only. It does not prove that current code conforms to the accepted [OWS Platform Architecture and Composition Contract](OWS_PLATFORM_ARCHITECTURE.md), implements the shared authority/persistence spine, or establishes the selected [OWS Mobility architecture program](OWS_MOBILITY_PROGRAM_CHARTER.md) tracked by [issue #147](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/147).
+Passing this matrix accepts the tested current character/vehicle behavior only. It does not prove that current code conforms to the accepted [OWS Platform Architecture and Composition Contract](OWS_PLATFORM_ARCHITECTURE.md), implements the shared authority/persistence spine, or conforms to the target [OWS Mobility Architecture](OWS_MOBILITY_ARCHITECTURE.md) and [Mobility Acceptance Matrix](OWS_MOBILITY_ACCEPTANCE_MATRIX.md) tracked by [issue #147](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/147).
 
 ## Stage 3 Mobility expansion status
 
-This document preserves the verified pre-architecture baseline. #147 must expand or supersede it with accepted scenarios for passengers and control roles; authored standable zones, crouch/balance, sliding, active grip, hanging, and forced detachment; moving entry and relative-speed matching; same-vehicle exterior/interior infiltration; vehicle-to-vehicle transfer; collision and failed-transition outcomes; authoritative reservation/contention; Vehicle/Character correction without double-applied motion; late join, disconnect, destruction, and recovery. Those capabilities remain planned rather than implemented until their scoped work and declared evidence pass.
+This document preserves the verified pre-architecture/current-runtime baseline. The normative target matrix now expands it with passengers and control roles; authored standable zones, crouch/balance, sliding, active Grip, hanging, and forced detachment; moving entry and relative-motion matching; same-Vehicle exterior/interior infiltration; deferred cross-Vehicle route representation; collision and failed-transition outcomes; authoritative reservation/contention; correction without double-applied motion; late join, disconnect, destruction, and recovery. Those capabilities remain planned rather than implemented until their separately scoped work and declared evidence pass.
 
 ## Current execution target
 
@@ -124,7 +124,7 @@ Run CV-ENV-001 and all CV-FOOT scenarios once per character before using that ch
 | CV-FOOT-005 | Toggle strafe and aim while stationary and moving; release each input. | Facing and locomotion follow the selected mode; releasing input restores the prior mode without lock. | Video or detailed observation. |
 | CV-FOOT-006 | Trigger ragdoll while stationary and moving, then recover. | Ragdoll engages once, reacts to momentum and ground, and recovers to a controllable, correctly oriented character. | Video including recovery. |
 | CV-FOOT-007 | Cycle through the complete character roster and return to the starting character. | Each listed variant becomes playable exactly once per cycle and retains the OWS movement feature set. | One roster-cycle video or screenshot sequence. |
-| CV-FOOT-008 | Walk, sprint, jump, crouch, aim, and attempt traversal against a parked representative vehicle from multiple sides. | Ordinary movement collides cleanly. No action causes penetration, explosive impulse, loss of control, or unintended possession. The exact traversal response is `BLOCKED` until [#147](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/147) and [#21](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/21) accept the Mobility and collision/traversal contracts. | Video naming character, vehicle, and approach sides; blocker links for the traversal sub-result. |
+| CV-FOOT-008 | Walk, sprint, jump, crouch, aim, and attempt traversal against a parked representative vehicle from multiple sides. | Ordinary current movement collides cleanly. No action causes penetration, explosive impulse, loss of control, or unintended possession. Target dynamic-support/traversal behavior is evaluated separately under MOB-PHY and issue #21 and is not implied by this baseline row. | Video naming character, vehicle, and approach sides; target-matrix result when applicable. |
 | CV-FOOT-009 | Enter the supported strafe state, then press R3 while stationary and moving. | R3 toggles the OWS camera shoulder without changing camera style, locomotion mode, or character control. | Video showing both shoulder positions while stationary and moving. |
 
 ## Core character/vehicle loop
@@ -192,7 +192,7 @@ Run every scenario for every character × representative vehicle. Run CV-BAIL-00
 
 ## Impact and shared-physics matrix
 
-Run every scenario with C01 against every representative vehicle, then repeat with C02-C03 against V04, V13, and V14. If character response depends on an unresolved Mobility relationship or collision threshold/reaction policy, mark only that response detail `BLOCKED` on [#147](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/147) or [#21](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/21) as applicable; still evaluate the universal safety invariants.
+Run every scenario with C01 against every representative vehicle, then repeat with C02-C03 against V04, V13, and V14. Evaluate the current universal safety invariants here. Record planned Mobility relationship behavior in the target matrix and evidence-derived collision response under [#21](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/21); an unavailable implementation is not evidence against the accepted target architecture.
 
 | ID | Setup and action | Expected behavior | Required evidence |
 | --- | --- | --- | --- |
@@ -201,7 +201,7 @@ Run every scenario with C01 against every representative vehicle, then repeat wi
 | CV-IMPACT-003 | Repeat the character strike at materially higher speed in a controlled clear area. | Higher-energy contact remains finite; character and vehicle stay in-world and recoverable. Exact damage/knockdown response is governed by issue #21. | Video and contract status. |
 | CV-IMPACT-004 | Strike a character who is crouched, aiming, and manually ragdolled in separate runs. | No starting state creates penetration, explosive impulse, invalid animation/physics blending, or permanent input loss. | State-by-state video. |
 | CV-IMPACT-005 | Pin the character between a slowly moving vehicle and a rigid wall, then reverse the vehicle away. | No crash or explosive response occurs. After pressure is removed, the character can recover to a valid controllable state. Precise injury response is governed by issue #21. | Continuous video. |
-| CV-IMPACT-006 | Place the character on the hood/roof, then begin moving, turning, and braking. | Character and vehicle remain physically finite; no penetration or invalid attachment occurs. Supported surface eligibility, crouch/balance, slide, grip, edge departure, and forced-detachment behavior remain `BLOCKED` until #147/#21 accept the complete relationship and force-response rules. | Continuous video and contract status. |
+| CV-IMPACT-006 | Place the character on the hood/roof, then begin moving, turning, and braking. | Current Character and Vehicle behavior remains physically finite; no penetration or invalid attachment occurs. Supported surface eligibility, crouch/balance, slide, Grip, edge departure, and forced detachment are evaluated under the target MOB-PHY rows and #21 rather than inferred from this baseline. | Continuous video plus target-matrix implementation status. |
 | CV-IMPACT-007 | Land an airborne vehicle near and in contact with a character in a controlled test area. | Contact does not crash, tunnel through the world, corrupt possession, or leave either actor in an unrecoverable state. Precise character response is governed by issue #21. | Video. |
 | CV-IMPACT-008 | Roll a vehicle into or immediately beside a character. | Repeated body contact remains finite; character cannot become permanently embedded in the vehicle; recovery remains possible after separation. | Video. |
 
@@ -219,7 +219,7 @@ Run with C01 × every representative vehicle. Repeat a failing scenario with eve
 
 ## Network matrix
 
-Run with two players in listen-server PIE or equivalent: one listen host and one remote client. Start with C01 + V10, then run all three characters against V10 and C01 against the representative vehicles. Expected behavior is the OWS product contract: the server owns authoritative possession and seat state, and all relevant peers observe the same result.
+Run with two players in listen-server PIE or equivalent: one listen host and one remote client. Start with C01 + V10, then run all three characters against V10 and C01 against the representative vehicles. These expectations protect the current runtime baseline: the server owns authoritative possession and seat state, and all relevant peers observe the same result. Future Mobility support requires the target Mobility matrix.
 
 | ID | Setup and action | Expected behavior | Required evidence |
 | --- | --- | --- | --- |
@@ -228,7 +228,7 @@ Run with two players in listen-server PIE or equivalent: one listen host and one
 | CV-NET-003 | Host and client attempt to enter the same driver seat nearly simultaneously. | Exactly one player obtains the seat. The other remains a valid on-foot character; all peers agree on the winner and occupancy. | Synchronized evidence. |
 | CV-NET-004 | Remote client performs an above-15-mph moving bailout while host observes, then attempts re-entry during and after controlled recovery. | Server authorizes one bailout; both peers observe the same active character, vehicle continuation, looping non-ragdoll controlled roll, limited steering, and direct transition to ordinary locomotion. Re-entry is rejected only during controlled recovery and becomes available after control returns. | Synchronized evidence. |
 | CV-NET-005 | Host and client enter separate vehicles, drive through each other's relevance range, exit, and re-enter. | Each player retains independent authoritative control; no input, character, camera, or occupancy state crosses between players. | Synchronized evidence. |
-| CV-NET-006 | A player disconnects while driving; the remaining peer approaches the vehicle. | Server clears the disconnected player's occupancy and leaves a valid, consistently replicated vehicle state. Whether it becomes immediately enterable must match a linked disconnect policy; otherwise record that detail as `BLOCKED`. | Host evidence plus policy/defect link. |
+| CV-NET-006 | A player disconnects while driving; the remaining peer approaches the vehicle. | Current state remains valid and consistently replicated with no stale control or partial mutation. Compare the observed occupancy/control result with the configured target policy in MOB-LIFE-001/002 rather than treating immediate enterability as an unresolved architecture choice. | Host evidence plus target-matrix result or defect link. |
 | CV-NET-007 | A client joins after another player has already entered a vehicle. | Late joiner receives the current possession, occupancy, character visibility, and vehicle transform state without an intermediate false state becoming persistent. | Host and late-join client evidence. |
 
 ## Full release coverage grid
@@ -284,7 +284,7 @@ Link the defect to epic #7, apply the appropriate area/type/priority labels, add
 
 ## Matrix acceptance gate
 
-The character/vehicle boundary is ready to be called accepted only when:
+This protected current-runtime Character/Vehicle regression baseline is ready to be called accepted only when:
 
 1. CV-CORE-001 has a current `PASS` record for all forty-two character/vehicle combinations.
 2. Every required T2 and T3 scenario has a current result and none is `NR`.

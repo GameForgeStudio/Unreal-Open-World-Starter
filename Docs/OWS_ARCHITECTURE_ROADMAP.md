@@ -1,6 +1,6 @@
 # OWS Product Architecture Roadmap
 
-> **Status:** Accepted product direction and execution order. Stage 1 and Stage 2 are accepted. Aurora selected OWS Mobility as the active Stage 3 architecture program on 2026-08-24; its final architecture and matrix remain subject to repository research and Aurora's interview-driven approval.
+> **Status:** Accepted product direction and execution order. Stages 1 and 2 are accepted. Aurora selected OWS Mobility on 2026-08-24, closed its architecture interview, and explicitly accepted its architecture, matrix, and reconciled backlog on 2026-08-25. Mobility implementation remains gated, and Stage 4 remains closed until Aurora explicitly advances gate #111.
 
 ## Purpose
 
@@ -67,12 +67,12 @@ The accepted [OWS Shared Gameplay Spine, Authority, and Persistence Contract](OW
 
 Stage 3 therefore contains two architecture programs:
 
-- **OWS Mobility — selected and active.** [Issue #147](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/147) coordinates Character [#106](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/106)/[#107](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/107), Vehicle [#9](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/9)/[#108](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/108), collision and force response [#21](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/21), driving/kinematic benchmark [#41](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/41), Vehicle authoring [#48](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/48), and later cross-domain implementation/migration [#120](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/120). Character, Vehicle, and Integration remain separate, acyclic, independently buildable domains.
+- **OWS Mobility — selected and active.** [Issue #147](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/147) coordinates Character [#106](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/106)/[#107](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/107), Vehicle [#9](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/9)/[#108](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/108), collision and force response [#21](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/21), driving/kinematic benchmark [#41](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/41), Vehicle tuning [#48](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/48), graph runtime/editor work #155/#156, and the decomposed cross-domain implementation/migration family [#120](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/120). Character and Vehicle remain separate, acyclic domains that each build without Integration; Integration remains a separate acyclic family that is buildable when both supported public domain contracts are present.
 - **Systemic Hacking — preserved and gated.** [Epic #10](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/10) and [architecture issue #50](https://github.com/GameFusi/Unreal-Open-World-Starter/issues/50) remain the complete later Hacking program. Selecting Mobility does not cancel or silently narrow it.
 
-The accepted [OWS Mobility Program Charter](OWS_MOBILITY_PROGRAM_CHARTER.md) records the current implementation baseline, accepted ownership split, capability envelope, physical principles, authoring direction, authority constraints, issue ownership, and program exit gate. It is a selected-program design brief, not the final architecture and not evidence of implementation.
+The accepted [OWS Mobility Program Charter](OWS_MOBILITY_PROGRAM_CHARTER.md) records the program selection and exit gate. The accepted [OWS Mobility Architecture](OWS_MOBILITY_ARCHITECTURE.md) defines Character, Vehicle, and narrow Integration ownership and behavior; the accepted [OWS Mobility Acceptance Matrix](OWS_MOBILITY_ACCEPTANCE_MATRIX.md) defines proof and support claims. Acceptance of these target documents is not evidence that planned behavior already exists.
 
-The active program uses the City Foundation design process: audit the existing implementation, research current technical and product standards, interview Aurora on every consequential open choice, record the accepted final architecture and complete acceptance matrix, and then rewrite or create implementation issues against that contract. Only audits, research, interviews, and architecture documentation are open. Gameplay implementation remains gated.
+The program completed the current implementation audit, technical and product research, Aurora interview, accepted architecture, complete target matrix, and reconciled backlog. Gameplay implementation remains gated until each applicable issue is separately made ready and claimed.
 
 ### Stage 4 — Combat implementation
 
@@ -136,7 +136,7 @@ Stage 1 deliberately delegates details that require their own accepted architect
 - The precise roles of Character Movement Component, Mover, and later domain-specific foundations not decided by Stages 1 or 2.
 - Exact asset moves, redirect inventories, Input priority values, cook chunks, optional profile contents, installer presentation, and release artifacts.
 - Detailed Character, Vehicle, Hacking, Combat, and Living World implementation technology.
-- Exact Mobility implementation order after #147 accepts the Character, Vehicle, collision, integration, authoring, and matrix boundaries; Hacking remains the preserved later Stage 3 program.
+- Exact symbols, file destinations, measured response values, and implementation details inside the accepted Mobility dependency order; Hacking remains the preserved later Stage 3 program.
 - The first accepted Living World feature slice.
 
 These are not permission to reopen settled Stage 1 product, fork, ownership, dependency, installation, input, content-tier, extension, compatibility, or migration rules. Silence, current file placement, an enabled plugin, a technical convenience, or a consumer issue does not decide a delegated detail.

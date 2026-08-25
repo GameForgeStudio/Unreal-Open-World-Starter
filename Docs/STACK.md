@@ -43,14 +43,14 @@ This section records current physical implementation. It does not override the a
 | Persistence schemas, checkpoints, providers, migration, and recovery | OWS Persistence contract over the maintained Save Extension fork |
 | Complete character and traversal implementation | Maintained GASPALS fork evolving in place as the OWS Character family |
 | Complete vehicle implementation | Maintained KinetiForge fork evolving in place as the OWS Vehicle family |
-| Character/vehicle dynamic support and riding, boarding, occupancy/control handoff, exit, bailout, recovery/re-entry, exterior traversal, grip, moving entry, infiltration, transfer, reservations, and multiplayer orchestration | Narrow Character–Vehicle Mobility integration plugin family governed by the selected Stage 3 program |
+| Character/vehicle relationship, load, relationship-specific collision, boarding, occupancy/control handoff, exit, bailout, recovery/re-entry, exterior traversal, Grip, moving entry, same-Vehicle infiltration, reservations, and multiplayer coordination | Narrow Character–Vehicle Mobility integration plugin family; Character executes bodily motion, Vehicle applies simulation forces, and cross-Vehicle runtime certification remains a later slice |
 | Playable composition and showcase | `Source/OWS` and `/Game/OWS` thin shell |
 
 The complete ownership and dependency matrix is maintained in [OWS_PLATFORM_ARCHITECTURE.md](OWS_PLATFORM_ARCHITECTURE.md). Target ownership is migrated one responsibility at a time with baselines, compatibility shims or redirects, and explicit verification.
 
 The accepted [OWS Shared Gameplay Spine, Authority, and Persistence Contract](OWS_GAMEPLAY_SPINE_ARCHITECTURE.md) defines the shared Stage 2 target. It does not claim that the current runtime has been migrated or that multiplayer and persistence conformance already pass.
 
-The accepted [OWS Mobility Program Charter](OWS_MOBILITY_PROGRAM_CHARTER.md) records the active Stage 3 design program. Current `main` still provides only the verified entry/exit/bailout baseline described above; it does not yet implement passengers, supported exterior riding, moving entry, infiltration, or vehicle-to-vehicle transfer.
+The accepted [OWS Mobility Program Charter](OWS_MOBILITY_PROGRAM_CHARTER.md), [OWS Mobility Architecture](OWS_MOBILITY_ARCHITECTURE.md), and [Mobility Acceptance Matrix](OWS_MOBILITY_ACCEPTANCE_MATRIX.md) define the active Stage 3 program, target, and proof. Current `main` still provides only the verified entry/exit/bailout baseline described above; it does not yet implement passengers, supported exterior riding, moving entry, infiltration, or cross-Vehicle transfer.
 
 ## Accepted City Foundation target
 
@@ -62,6 +62,6 @@ The cooked foundation supplies authoritative terrain, roads, buildings, collisio
 
 ## Acceptance
 
-Use [CHARACTER_VEHICLE_ACCEPTANCE_MATRIX.md](CHARACTER_VEHICLE_ACCEPTANCE_MATRIX.md) for the repeatable release scenarios. At minimum, changes affecting the playable experience must be checked in `OWS_CombinedDemo` for analog slow movement, walk/run/sprint transitions, traversal, camera behavior, vehicle entry, driving, and exit.
+Use [CHARACTER_VEHICLE_ACCEPTANCE_MATRIX.md](CHARACTER_VEHICLE_ACCEPTANCE_MATRIX.md) for protected current-runtime regressions and [OWS_MOBILITY_ACCEPTANCE_MATRIX.md](OWS_MOBILITY_ACCEPTANCE_MATRIX.md) for future Mobility support claims. At minimum, changes affecting the playable experience must be checked in `OWS_CombinedDemo` for analog slow movement, walk/run/sprint transitions, traversal, camera behavior, vehicle entry, driving, and exit.
 
 City Foundation changes must conform to [CITY_FOUNDATION_ARCHITECTURE.md](CITY_FOUNDATION_ARCHITECTURE.md). Current and required future City Foundation coverage is documented in [TESTING.md](TESTING.md); no importer, generator, cache, or runtime-cell behavior is considered present until its linked implementation and verification issues provide evidence.
