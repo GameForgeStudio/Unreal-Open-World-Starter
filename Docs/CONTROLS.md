@@ -27,9 +27,9 @@ Controller names use both PlayStation and Xbox labels: `Cross / A`, `Circle / B`
 
 Movement on the left stick is analog. Light input produces the slowest movement range; pressing `L3` toggles the restricted walk range. Keyboard movement is digital, so `Left Ctrl` supplies the walk toggle.
 
-### Experimental presentation shortcuts
+### Inherited presentation shortcuts
 
-These inherited presentation controls remain available in the OWS character:
+These inherited presentation controls remain available as protected current behavior. The two overlay selectors are Internal demonstration/compatibility surfaces; the first-person and alternate-camera shortcuts are Experimental under the target [OWS Character Architecture](OWS_CHARACTER_ARCHITECTURE.md). Their present availability is not a completed support claim.
 
 | Action | Keyboard and mouse | Controller |
 | --- | --- | --- |
@@ -38,7 +38,7 @@ These inherited presentation controls remain available in the OWS character:
 | Toggle the experimental first-person camera | `1` | — |
 | Cycle between demonstration camera styles | `2` / `3` | — |
 
-`E` therefore reaches both the normal interact action and the inherited overlay-base selector. The inherited gamepad camera-style shortcuts are superseded by the OWS controller's D-pad hotbar and roster routing; use the keyboard presentation shortcuts above in the configured OWS experience.
+`E` therefore reaches both the inherited GASPALS `IA_Interact` compatibility path and the inherited overlay-base selector. This is not the OWS world-target `Activate` route, which remains `F` / `Square / X`. The inherited gamepad camera-style shortcuts are superseded by the OWS controller's D-pad hotbar and roster routing; use the keyboard presentation shortcuts above in the configured OWS experience.
 
 ## Cross-hotbar routing
 

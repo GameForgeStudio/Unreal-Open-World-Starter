@@ -13,7 +13,9 @@ This contract consumes and does not reopen:
 - the accepted program selection in the [OWS Mobility Program Charter](OWS_MOBILITY_PROGRAM_CHARTER.md); and
 - the audited implementation, research, and decision record in the [OWS Mobility Evidence Baseline](OWS_MOBILITY_EVIDENCE_BASELINE.md).
 
-The [OWS Mobility Acceptance Matrix](OWS_MOBILITY_ACCEPTANCE_MATRIX.md) defines the proof required for every support claim. The older [Character and Vehicle Acceptance Matrix](CHARACTER_VEHICLE_ACCEPTANCE_MATRIX.md) remains the protected current-behavior regression baseline until the replacement paths pass the Mobility matrix.
+The [OWS Mobility Acceptance Matrix](OWS_MOBILITY_ACCEPTANCE_MATRIX.md) defines the shared result-record/T0–T5 envelope and the proof required for every Mobility relationship or composed support claim. Detailed independent Character and Vehicle support is governed by their respective `CHAR-*` and `VEH-*` contracts plus the reconciliation handoff below. The older [Character and Vehicle Acceptance Matrix](CHARACTER_VEHICLE_ACCEPTANCE_MATRIX.md) remains the protected current-behavior regression baseline until the replacement paths pass the applicable domain and Mobility matrices.
+
+The accepted [OWS Character Architecture](OWS_CHARACTER_ARCHITECTURE.md) and [OWS Vehicle Architecture](OWS_VEHICLE_ARCHITECTURE.md) are the broader independent domain contracts required by #107/#108. Their shared [Character–Vehicle Domain Reconciliation Matrix](OWS_CHARACTER_VEHICLE_DOMAIN_MATRIX.md) records compatible ownership, dependency direction, and T0 evidence handoff without replacing this contract's authority over Character–Vehicle relationships and transitions.
 
 The [OWS Mobility Implementation Backlog](OWS_MOBILITY_IMPLEMENTATION_BACKLOG.md) maps this contract to non-overlapping GitHub issues. It is an execution map, not permission to check out any child.
 

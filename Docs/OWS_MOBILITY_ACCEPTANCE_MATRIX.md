@@ -116,7 +116,7 @@ Each row's **Setup/action** is its minimum procedure and precondition statement.
 | Reservations, occupancy, and contention | #108 Vehicle records, #28 leases/contention, #120 orchestration |
 | Animation, embodiment, camera, and accessibility | #107 Character, #117 Input, #119 UI, #120 Integration |
 | Lifecycle and persistence | #120 Integration, #132 persistence, #138 recovery, #139 World Partition |
-| Diagnostics, Shipping, scale, and release evidence | #140 observability, #141 conformance, #41/#49 performance |
+| Diagnostics, Shipping, scale, and release evidence | #140 observability; #141 shared harness infrastructure; #167 Stage 3 conformance/release; #41/#49 performance |
 | Protected current behavior and migration | Existing current matrix, #120 integration migration, #121 content migration |
 
 ## Universal invariants
@@ -328,7 +328,7 @@ The following must remain green until equivalent accepted paths replace them, an
 
 ### Independent domains
 
-Character and Vehicle contracts are accepted only when their T0 suites pass independently, their public/extension surfaces are documented, and no private peer or Integration dependency exists.
+Acceptance of the Character and Vehicle target-architecture contracts is not implementation evidence. A Character or Vehicle reusable-domain support claim/certification is available only when its T0 suite passes independently, its public/extension surfaces are documented, and no private peer or Integration dependency exists.
 
 ### Same-Vehicle Mobility first slice
 
