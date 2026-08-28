@@ -233,7 +233,7 @@ function Assert-OWSRunRootForDeletion {
     $ActualParent = [System.IO.Path]::GetDirectoryName($RunFull).TrimEnd('\', '/')
     $Leaf = [System.IO.Path]::GetFileName($RunFull)
     if (-not $ActualParent.Equals($ExpectedParent, [System.StringComparison]::OrdinalIgnoreCase) -or
-        $Leaf -notmatch '^\.ows-platform-baseline-[0-9a-f]{32}$') {
+        $Leaf -notmatch '^\.owsb-[0-9a-f]{12}$') {
         throw 'Controlled run-root validation failed; recursive cleanup was refused.'
     }
     return $RunFull
@@ -641,7 +641,7 @@ try {
         }
         $ScratchParent = [System.IO.Path]::GetDirectoryName($ResolvedOutputPath)
         [void][System.IO.Directory]::CreateDirectory($ScratchParent)
-        $TempRoot = Join-Path $ScratchParent ('.ows-platform-baseline-' + [guid]::NewGuid().ToString('N'))
+        $TempRoot = Join-Path $ScratchParent ('.owsb-' + [guid]::NewGuid().ToString('N').Substring(0, 12))
         [void][System.IO.Directory]::CreateDirectory($TempRoot)
         $WorktreePath = Assert-OWSContainedPath -Parent $TempRoot -Child (Join-Path $TempRoot 'worktree')
         $LogsPath = Assert-OWSContainedPath -Parent $TempRoot -Child (Join-Path $TempRoot 'logs')
