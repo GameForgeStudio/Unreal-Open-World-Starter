@@ -24,6 +24,7 @@ $WorktreePath = $null
 $LogsPath = $null
 $StagePath = $null
 $ArchivePath = $null
+$PlatformCookPath = $null
 $AssetRegistryDumpPath = $null
 $ContainerManifestPath = $null
 $AssetBaselinePath = $null
@@ -334,7 +335,7 @@ function Protect-OWSGeneratedTaskFiles {
     foreach ($Root in @($Roots | Sort-Object -Unique)) {
         [void](Assert-OWSContainedPath -Parent $script:TempRoot -Child $Root)
         foreach ($File in Get-ChildItem -LiteralPath $Root -Recurse -File -ErrorAction Stop) {
-            $IsTextLike = $File.Extension -match '^\.(?:log|txt|json|csv|xml|response|rsp|ini|config|yml|yaml|htm|html)$' -or $File.FullName -match '[\\/]ResponseFiles[\\/]'
+            $IsTextLike = $File.Extension -match '^\.(?:log|txt|json|csv|xml|response|rsp|ini|config|yml|yaml|htm|html|projectstore)$' -or $File.FullName -match '[\\/]ResponseFiles[\\/]'
             if (-not $IsTextLike) { continue }
             $Signature = "$($File.Length):$($File.LastWriteTimeUtc.Ticks)"
             if ($script:SanitizedTaskFiles.ContainsKey($File.FullName) -and $script:SanitizedTaskFiles[$File.FullName] -eq $Signature) { continue }
@@ -462,37 +463,11 @@ function Test-OWSCsvHasData {
     catch { return $false }
 }
 
-function Test-OWSPackageEvidence {
-    param(
-        [Parameter(Mandatory)][string]$StageRoot,
-        [Parameter(Mandatory)][string]$ArchiveRoot,
-        [Parameter(Mandatory)][string]$MetadataRoot
-    )
-
-    $Missing = New-Object System.Collections.Generic.List[string]
-    foreach ($Path in @($StageRoot, $ArchiveRoot)) {
-        if (-not (Test-Path -LiteralPath $Path -PathType Container)) { $Missing.Add($Path) }
-    }
-    if ((Test-Path -LiteralPath $StageRoot -PathType Container) -and @(Get-ChildItem -LiteralPath $StageRoot -Recurse -File).Count -eq 0) { $Missing.Add((Join-Path $StageRoot '*')) }
-    if ((Test-Path -LiteralPath $ArchiveRoot -PathType Container) -and @(Get-ChildItem -LiteralPath $ArchiveRoot -Recurse -File).Count -eq 0) { $Missing.Add((Join-Path $ArchiveRoot '*')) }
-    foreach ($Name in @('DevelopmentAssetRegistry.bin', 'DevelopmentAssetRegistryStaged.bin', 'CookMetadata.ucookmeta', 'packagestore.manifest', 'plugin_sizes.csv', 'plugin_size_jsons.json')) {
-        $Path = Join-Path $MetadataRoot $Name
-        if (-not (Test-Path -LiteralPath $Path -PathType Leaf) -or (Get-Item -LiteralPath $Path).Length -le 0) { $Missing.Add($Path) }
-    }
-    foreach ($Extension in @('*.utoc', '*.ucas', '*.pak')) {
-        if (-not (Test-Path -LiteralPath $ArchiveRoot -PathType Container) -or
-            @(Get-ChildItem -LiteralPath $ArchiveRoot -Recurse -File -Filter $Extension).Count -eq 0) {
-            $Missing.Add((Join-Path $ArchiveRoot $Extension))
-        }
-    }
-    if (-not (Test-Path -LiteralPath (Join-Path $ArchiveRoot 'OWS.exe') -PathType Leaf)) { $Missing.Add((Join-Path $ArchiveRoot 'OWS.exe')) }
-    return [pscustomobject]@{ valid = ($Missing.Count -eq 0); missing = @($Missing | ForEach-Object { $_ }) }
-}
-
 function Invoke-OWSPackageOutputOracle {
     param(
         [Parameter(Mandatory)][string]$StageRoot,
         [Parameter(Mandatory)][string]$ArchiveRoot,
+        [Parameter(Mandatory)][string]$PlatformCookRoot,
         [Parameter(Mandatory)][string]$MetadataRoot
     )
 
@@ -500,7 +475,7 @@ function Invoke-OWSPackageOutputOracle {
     $Evidence = $null
     $Failure = $null
     try {
-        $Evidence = Test-OWSPackageEvidence -StageRoot $StageRoot -ArchiveRoot $ArchiveRoot -MetadataRoot $MetadataRoot
+        $Evidence = Test-OWSPackageEvidence -StageRoot $StageRoot -ArchiveRoot $ArchiveRoot -PlatformCookRoot $PlatformCookRoot -MetadataRoot $MetadataRoot
     }
     catch {
         $Failure = ConvertTo-OWSSanitizedText -Text $_.Exception.Message
@@ -515,17 +490,34 @@ function Invoke-OWSPackageOutputOracle {
             $Evidence.missing | ForEach-Object { ConvertTo-OWSPortableArgument -Value ([string]$_) }
         }
     )
+    $PortablePackageStoreMarker = if ($null -ne $Evidence -and $null -ne $Evidence.package_store_marker) {
+        [ordered]@{
+            kind = [string]$Evidence.package_store_marker.kind
+            path = ConvertTo-OWSPortableArgument -Value ([string]$Evidence.package_store_marker.path)
+            bytes = [int64]$Evidence.package_store_marker.bytes
+            sha256 = [string]$Evidence.package_store_marker.sha256
+        }
+    }
+    else {
+        $null
+    }
     $Passed = $null -eq $Failure -and [bool]$Evidence.valid
     $Detail = if ($null -ne $Failure) {
         'Package output oracle could not inspect every required output: ' + $PortableFailure
     }
     elseif ($Passed) {
-        'Required stage, archive, container, executable, and cook-metadata outputs exist and are non-empty.'
+        'Required stage, archive, container, executable, cook-metadata, and package-store marker outputs exist and are non-empty.'
     }
     else {
         "Package output oracle is missing $($PortableMissing.Count) required item(s)."
     }
-    $SafeLog = $Detail + "`ninspection_failure=" + [string]$PortableFailure + "`n" + ($PortableMissing -join "`n")
+    $SafeMarkerLog = if ($null -eq $PortablePackageStoreMarker) {
+        'package_store_marker=null'
+    }
+    else {
+        "package_store_marker=$($PortablePackageStoreMarker.kind) $($PortablePackageStoreMarker.path) $($PortablePackageStoreMarker.bytes) $($PortablePackageStoreMarker.sha256)"
+    }
+    $SafeLog = $Detail + "`ninspection_failure=" + [string]$PortableFailure + "`n" + $SafeMarkerLog + "`n" + ($PortableMissing -join "`n")
     $Command = [ordered]@{
         id = 'package_output_oracle'
         executable = 'PowerShell'
@@ -533,6 +525,7 @@ function Invoke-OWSPackageOutputOracle {
             'Test-OWSPackageEvidence',
             '-StageRoot', (ConvertTo-OWSPortableArgument -Value $StageRoot),
             '-ArchiveRoot', (ConvertTo-OWSPortableArgument -Value $ArchiveRoot),
+            '-PlatformCookRoot', (ConvertTo-OWSPortableArgument -Value $PlatformCookRoot),
             '-MetadataRoot', (ConvertTo-OWSPortableArgument -Value $MetadataRoot)
         )
         exit_code = if ($Passed) { 0 } elseif ($null -ne $Failure) { -1 } else { 1 }
@@ -546,6 +539,7 @@ function Invoke-OWSPackageOutputOracle {
         detail = $Detail
         missing = $PortableMissing
         inspection_failure = $PortableFailure
+        package_store_marker = $PortablePackageStoreMarker
         evidence_refs = @('command://package_output_oracle', '#/inventories/stage', '#/inventories/archive', '#/inventories/cook_metadata')
     }
     return [pscustomobject]@{ command = $Command; result = $Result }
@@ -783,9 +777,10 @@ try {
             $CommandRecords.Add($CookPackage)
             $StageWindowsPath = Join-Path $StagePath 'Windows'
             $ArchiveWindowsPath = Join-Path $ArchivePath 'Windows'
-            $CookMetadataPath = Join-Path $WorktreePath 'Saved\Cooked\Windows\OWS\Metadata'
+            $PlatformCookPath = Join-Path $WorktreePath 'Saved\Cooked\Windows'
+            $CookMetadataPath = Join-Path $PlatformCookPath 'OWS\Metadata'
             if ($CookPackage.result -eq 'PASS') {
-                $PackageCapture = Invoke-OWSPackageOutputOracle -StageRoot $StageWindowsPath -ArchiveRoot $ArchiveWindowsPath -MetadataRoot $CookMetadataPath
+                $PackageCapture = Invoke-OWSPackageOutputOracle -StageRoot $StageWindowsPath -ArchiveRoot $ArchiveWindowsPath -PlatformCookRoot $PlatformCookPath -MetadataRoot $CookMetadataPath
                 $PackageOracle = $PackageCapture.command
                 $PackageResult = $PackageCapture.result
             }
@@ -862,6 +857,7 @@ try {
             $ContainerEvidence = [ordered]@{ status = 'BLOCKED'; detail = 'Container manifests require a verified package archive.'; evidence_refs = @('command://package_output_oracle') }
             $StageWindowsPath = $null
             $ArchiveWindowsPath = $null
+            $PlatformCookPath = $null
             $CookMetadataPath = $null
         }
         $Results = [ordered]@{

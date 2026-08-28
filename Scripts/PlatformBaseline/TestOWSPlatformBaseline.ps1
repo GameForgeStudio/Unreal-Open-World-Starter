@@ -184,6 +184,25 @@ SharedSetting=plugin
     $NAValidation = Test-OWSBaselineReport -Report $NAReport -RepositoryRoot $FixtureRoot -SchemaPath $SchemaPath
     Assert-OWSTest $NAValidation.valid ('Schema rejected the documented N/A result: ' + ($NAValidation.errors -join '; '))
 
+    $PackagePassReport = Copy-OWSTestObject -InputObject $ReportA
+    $PackagePassReport.results.package = [pscustomobject]@{
+        status = 'PASS'
+        detail = 'Synthetic package evidence passed.'
+        package_store_marker = [pscustomobject]@{
+            kind = 'zen_project_store'
+            path = '$WORKTREE\Saved\Cooked\Windows\ue.projectstore'
+            bytes = 21
+            sha256 = ('a' * 64)
+        }
+    }
+    $PackagePassValidation = Test-OWSBaselineReport -Report $PackagePassReport -RepositoryRoot $FixtureRoot -SchemaPath $SchemaPath
+    Assert-OWSTest $PackagePassValidation.valid ('Schema rejected a package PASS with safe package-store marker evidence: ' + ($PackagePassValidation.errors -join '; '))
+
+    $PackagePassWithoutMarker = Copy-OWSTestObject -InputObject $PackagePassReport
+    $PackagePassWithoutMarker.results.package.PSObject.Properties.Remove('package_store_marker')
+    $PackagePassWithoutMarkerValidation = Test-OWSBaselineReport -Report $PackagePassWithoutMarker -RepositoryRoot $FixtureRoot -SchemaPath $SchemaPath
+    Assert-OWSTest (-not $PackagePassWithoutMarkerValidation.valid) 'Schema accepted a package PASS without package-store marker evidence.'
+
     $KnownFixture = [pscustomobject]@{ families = @([pscustomobject]@{ id = 'absent-family'; classification = 'known_gap'; owners = @([pscustomobject]@{ issue = 999; url = 'https://github.com/example/example/issues/999' }) }) }
     $Candidate = @(Resolve-OWSFindings -RawFindings @() -KnownGaps $KnownFixture)
     Assert-OWSTest ($Candidate.Count -eq 1 -and $Candidate[0].classification -eq 'candidate_resolved') 'Absent known gap did not become candidate_resolved.'
@@ -194,6 +213,129 @@ SharedSetting=plugin
     [System.IO.File]::WriteAllText((Join-Path $ManifestRoot 'nested\b.txt'), 'beta')
     $Manifest = Get-OWSFileManifest -RootPath $ManifestRoot
     Assert-OWSTest ($Manifest.status -eq 'PASS' -and $Manifest.count -eq 2 -and $Manifest.bytes -eq 9) 'File manifest did not capture deterministic count/bytes evidence.'
+
+    $PackageRoot = Join-Path $ScratchRoot 'package-evidence'
+    $PackageStageRoot = Join-Path $PackageRoot 'stage'
+    $PackageArchiveRoot = Join-Path $PackageRoot 'archive'
+    $PackageCookRoot = Join-Path $PackageRoot 'cook'
+    $PackageMetadataRoot = Join-Path $PackageCookRoot 'OWS\Metadata'
+    foreach ($Directory in @(
+        $PackageStageRoot,
+        $PackageArchiveRoot,
+        $PackageCookRoot,
+        $PackageMetadataRoot
+    )) {
+        [void][System.IO.Directory]::CreateDirectory($Directory)
+    }
+    [System.IO.File]::WriteAllText((Join-Path $PackageStageRoot 'stage.txt'), 'stage')
+    foreach ($Name in @('OWS.exe', 'pakchunk0.utoc', 'pakchunk0.ucas', 'pakchunk0.pak')) {
+        [System.IO.File]::WriteAllText((Join-Path $PackageArchiveRoot $Name), $Name)
+    }
+    foreach ($Name in @(
+        'DevelopmentAssetRegistry.bin',
+        'DevelopmentAssetRegistryStaged.bin',
+        'CookMetadata.ucookmeta',
+        'plugin_sizes.csv',
+        'plugin_size_jsons.json'
+    )) {
+        [System.IO.File]::WriteAllText((Join-Path $PackageMetadataRoot $Name), $Name)
+    }
+
+    $NoPackageStoreMarker = Test-OWSPackageEvidence `
+        -StageRoot $PackageStageRoot `
+        -ArchiveRoot $PackageArchiveRoot `
+        -PlatformCookRoot $PackageCookRoot `
+        -MetadataRoot $PackageMetadataRoot
+    Assert-OWSTest (-not $NoPackageStoreMarker.valid) 'Package evidence accepted no package-store marker.'
+    Assert-OWSTest (
+        @($NoPackageStoreMarker.missing).Count -eq 1 -and
+        $NoPackageStoreMarker.missing[0] -match 'ue\.projectstore.+OR.+packagestore\.manifest'
+    ) 'Missing package-store alternatives were not reported as one OR requirement.'
+
+    $ZenMarkerPath = Join-Path $PackageCookRoot 'ue.projectstore'
+    $SensitiveZenProjectStore = '{"zenserver":{"hostauth":{"password":"DO_NOT_PRINT_THIS_SYNTHETIC_VALUE"}}}'
+    [System.IO.File]::WriteAllText($ZenMarkerPath, $SensitiveZenProjectStore)
+    $UnsanitizedZenRejected = $false
+    try {
+        [void](Test-OWSPackageEvidence `
+            -StageRoot $PackageStageRoot `
+            -ArchiveRoot $PackageArchiveRoot `
+            -PlatformCookRoot $PackageCookRoot `
+            -MetadataRoot $PackageMetadataRoot)
+    }
+    catch {
+        $UnsanitizedZenRejected = $_.Exception.Message -eq 'The Zen project-store marker has not been sanitized.'
+    }
+    Assert-OWSTest $UnsanitizedZenRejected 'Package evidence did not reject an unsanitized credential-bearing Zen project store with a content-free error.'
+
+    $SanitizedZenProjectStore = ConvertTo-OWSSanitizedText -Text $SensitiveZenProjectStore
+    [System.IO.File]::WriteAllText($ZenMarkerPath, $SanitizedZenProjectStore)
+    Assert-OWSTest (-not (Get-Content -Raw -LiteralPath $ZenMarkerPath).Contains('DO_NOT_PRINT_THIS_SYNTHETIC_VALUE')) 'Synthetic Zen project-store credential was not sanitized.'
+    $ZenPackageEvidence = Test-OWSPackageEvidence `
+        -StageRoot $PackageStageRoot `
+        -ArchiveRoot $PackageArchiveRoot `
+        -PlatformCookRoot $PackageCookRoot `
+        -MetadataRoot $PackageMetadataRoot
+    Assert-OWSTest $ZenPackageEvidence.valid 'Package evidence rejected the Zen project-store marker.'
+    Assert-OWSTest (
+        $ZenPackageEvidence.package_store_marker.kind -eq 'zen_project_store' -and
+        $ZenPackageEvidence.package_store_marker.path -eq $ZenMarkerPath -and
+        $ZenPackageEvidence.package_store_marker.bytes -gt 0 -and
+        $ZenPackageEvidence.package_store_marker.sha256 -eq (Get-OWSFileSha256 -Path $ZenMarkerPath)
+    ) 'Zen project-store evidence did not retain safe marker metadata and checksum.'
+
+    $LooseMarkerPath = Join-Path $PackageMetadataRoot 'packagestore.manifest'
+    [System.IO.File]::WriteAllText($LooseMarkerPath, 'synthetic loose package store')
+    [System.IO.File]::WriteAllText($ZenMarkerPath, '{"project":"stale-without-zenserver"}')
+    $LoosePackageEvidence = Test-OWSPackageEvidence `
+        -StageRoot $PackageStageRoot `
+        -ArchiveRoot $PackageArchiveRoot `
+        -PlatformCookRoot $PackageCookRoot `
+        -MetadataRoot $PackageMetadataRoot
+    Assert-OWSTest $LoosePackageEvidence.valid 'Package evidence did not fall through an invalid Zen marker to the loose package-store manifest.'
+    Assert-OWSTest (
+        $LoosePackageEvidence.package_store_marker.kind -eq 'loose_package_store_manifest' -and
+        $LoosePackageEvidence.package_store_marker.path -eq $LooseMarkerPath -and
+        $LoosePackageEvidence.package_store_marker.bytes -gt 0 -and
+        $LoosePackageEvidence.package_store_marker.sha256 -eq (Get-OWSFileSha256 -Path $LooseMarkerPath)
+    ) 'Loose package-store evidence did not retain safe marker metadata and checksum.'
+
+    [System.IO.File]::WriteAllText($ZenMarkerPath, '')
+    $EmptyZenRejected = $false
+    try {
+        [void](Test-OWSPackageEvidence `
+            -StageRoot $PackageStageRoot `
+            -ArchiveRoot $PackageArchiveRoot `
+            -PlatformCookRoot $PackageCookRoot `
+            -MetadataRoot $PackageMetadataRoot)
+    }
+    catch {
+        $EmptyZenRejected = $_.Exception.Message -eq 'The Zen project-store marker is empty.'
+    }
+    Assert-OWSTest $EmptyZenRejected 'Package evidence fell through an empty Zen marker instead of rejecting it.'
+
+    [System.IO.File]::WriteAllText($ZenMarkerPath, '{')
+    $MalformedZenRejected = $false
+    try {
+        [void](Test-OWSPackageEvidence `
+            -StageRoot $PackageStageRoot `
+            -ArchiveRoot $PackageArchiveRoot `
+            -PlatformCookRoot $PackageCookRoot `
+            -MetadataRoot $PackageMetadataRoot)
+    }
+    catch {
+        $MalformedZenRejected = $_.Exception.Message -eq 'The Zen project-store marker is not valid JSON.'
+    }
+    Assert-OWSTest $MalformedZenRejected 'Package evidence fell through a malformed Zen marker instead of rejecting it with a content-free error.'
+
+    [System.IO.File]::Delete($ZenMarkerPath)
+    [System.IO.File]::WriteAllText($LooseMarkerPath, '')
+    $EmptyPackageStoreMarker = Test-OWSPackageEvidence `
+        -StageRoot $PackageStageRoot `
+        -ArchiveRoot $PackageArchiveRoot `
+        -PlatformCookRoot $PackageCookRoot `
+        -MetadataRoot $PackageMetadataRoot
+    Assert-OWSTest (-not $EmptyPackageStoreMarker.valid) 'Package evidence accepted an empty package-store marker.'
 
     $InsideRejected = $false
     try { [void](Assert-OWSExternalOutputPath -RepositoryRoot $FixtureRoot -OutputPath (Join-Path $FixtureRoot 'report.json')) }
@@ -231,7 +373,7 @@ SharedSetting=plugin
     Assert-OWSTest (-not $PrivateKeyValidation.valid) 'Delivery validation accepted private-key material.'
 
     if ($Failures.Count -gt 0) { throw ($Failures -join [Environment]::NewLine) }
-    [Console]::WriteLine('[OWS baseline self-test] PASS: deterministic schema, ownership, redaction, digest, manifest, and output guards passed without Unreal.')
+    [Console]::WriteLine('[OWS baseline self-test] PASS: deterministic schema, ownership, redaction, digest, manifest, package-marker, and output guards passed without Unreal.')
 }
 catch {
     [Console]::Error.WriteLine('[OWS baseline self-test] FAIL: ' + (ConvertTo-OWSSanitizedText -Text $_.Exception.Message))

@@ -115,6 +115,9 @@
         "container_manifests",
         "packaged_launch"
       ],
+      "properties": {
+        "package": { "$ref": "#/$defs/packageResult" }
+      },
       "additionalProperties": { "$ref": "#/$defs/result" }
     },
     "inventories": {
@@ -219,6 +222,47 @@
           "items": { "type": "string", "minLength": 1 }
         }
       }
+    },
+    "packageStoreMarker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "path", "bytes", "sha256"],
+      "properties": {
+        "kind": { "enum": ["zen_project_store", "loose_package_store_manifest"] },
+        "path": { "type": "string", "minLength": 1 },
+        "bytes": { "type": "integer", "minimum": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "packageResult": {
+      "allOf": [
+        { "$ref": "#/$defs/result" },
+        {
+          "type": "object",
+          "properties": {
+            "package_store_marker": {
+              "oneOf": [
+                { "type": "null" },
+                { "$ref": "#/$defs/packageStoreMarker" }
+              ]
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": { "status": { "const": "PASS" } },
+                "required": ["status"]
+              },
+              "then": {
+                "required": ["package_store_marker"],
+                "properties": {
+                  "package_store_marker": { "$ref": "#/$defs/packageStoreMarker" }
+                }
+              }
+            }
+          ]
+        }
+      ]
     },
     "command": {
       "type": "object",

@@ -640,6 +640,107 @@ function Get-OWSFileManifest {
     }
 }
 
+function Test-OWSPackageEvidence {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$StageRoot,
+        [Parameter(Mandatory)][string]$ArchiveRoot,
+        [Parameter(Mandatory)][string]$PlatformCookRoot,
+        [Parameter(Mandatory)][string]$MetadataRoot
+    )
+
+    $Missing = New-Object System.Collections.Generic.List[string]
+    foreach ($Path in @($StageRoot, $ArchiveRoot)) {
+        if (-not (Test-Path -LiteralPath $Path -PathType Container)) { $Missing.Add($Path) }
+    }
+    if ((Test-Path -LiteralPath $StageRoot -PathType Container) -and
+        @(Get-ChildItem -LiteralPath $StageRoot -Recurse -File).Count -eq 0) {
+        $Missing.Add((Join-Path $StageRoot '*'))
+    }
+    if ((Test-Path -LiteralPath $ArchiveRoot -PathType Container) -and
+        @(Get-ChildItem -LiteralPath $ArchiveRoot -Recurse -File).Count -eq 0) {
+        $Missing.Add((Join-Path $ArchiveRoot '*'))
+    }
+    foreach ($Name in @(
+        'DevelopmentAssetRegistry.bin',
+        'DevelopmentAssetRegistryStaged.bin',
+        'CookMetadata.ucookmeta',
+        'plugin_sizes.csv',
+        'plugin_size_jsons.json'
+    )) {
+        $Path = Join-Path $MetadataRoot $Name
+        if (-not (Test-Path -LiteralPath $Path -PathType Leaf) -or
+            (Get-Item -LiteralPath $Path).Length -le 0) {
+            $Missing.Add($Path)
+        }
+    }
+
+    $PackageStoreMarker = $null
+    $ZenProjectStorePath = Join-Path $PlatformCookRoot 'ue.projectstore'
+    if (Test-Path -LiteralPath $ZenProjectStorePath -PathType Leaf) {
+        $ZenFile = Get-Item -LiteralPath $ZenProjectStorePath
+        if ($ZenFile.Length -le 0) {
+            throw 'The Zen project-store marker is empty.'
+        }
+        $ZenJson = Get-Content -Raw -LiteralPath $ZenFile.FullName
+        if ((ConvertTo-OWSSanitizedText -Text $ZenJson) -cne $ZenJson) {
+            throw 'The Zen project-store marker has not been sanitized.'
+        }
+        try {
+            $ZenData = $ZenJson | ConvertFrom-Json
+        }
+        catch {
+            throw 'The Zen project-store marker is not valid JSON.'
+        }
+        $ZenServer = Get-OWSObjectPropertyValue `
+            -Object $ZenData `
+            -Name 'zenserver' `
+            -Default $null
+        if ($null -ne $ZenServer) {
+            $PackageStoreMarker = [ordered]@{
+                kind = 'zen_project_store'
+                path = $ZenFile.FullName
+                bytes = [int64]$ZenFile.Length
+                sha256 = Get-OWSFileSha256 -Path $ZenFile.FullName
+            }
+        }
+    }
+    $LoosePackageStorePath = Join-Path $MetadataRoot 'packagestore.manifest'
+    if ($null -eq $PackageStoreMarker -and
+        (Test-Path -LiteralPath $LoosePackageStorePath -PathType Leaf)) {
+        $LooseFile = Get-Item -LiteralPath $LoosePackageStorePath
+        if ($LooseFile.Length -gt 0) {
+            $PackageStoreMarker = [ordered]@{
+                kind = 'loose_package_store_manifest'
+                path = $LooseFile.FullName
+                bytes = [int64]$LooseFile.Length
+                sha256 = Get-OWSFileSha256 -Path $LooseFile.FullName
+            }
+        }
+    }
+    if ($null -eq $PackageStoreMarker) {
+        $Missing.Add(
+            $ZenProjectStorePath +
+            ' OR ' +
+            $LoosePackageStorePath)
+    }
+
+    foreach ($Extension in @('*.utoc', '*.ucas', '*.pak')) {
+        if (-not (Test-Path -LiteralPath $ArchiveRoot -PathType Container) -or
+            @(Get-ChildItem -LiteralPath $ArchiveRoot -Recurse -File -Filter $Extension).Count -eq 0) {
+            $Missing.Add((Join-Path $ArchiveRoot $Extension))
+        }
+    }
+    if (-not (Test-Path -LiteralPath (Join-Path $ArchiveRoot 'OWS.exe') -PathType Leaf)) {
+        $Missing.Add((Join-Path $ArchiveRoot 'OWS.exe'))
+    }
+    return [pscustomobject]@{
+        valid = ($Missing.Count -eq 0)
+        missing = @($Missing | ForEach-Object { $_ })
+        package_store_marker = $PackageStoreMarker
+    }
+}
+
 function Read-OWSCsvEvidence {
     param([string]$Path, [string]$Detail)
 
@@ -1326,5 +1427,6 @@ Export-ModuleMember -Function @(
     'Read-OWSJsonFile',
     'Resolve-OWSFindings',
     'Test-OWSBaselineReport',
+    'Test-OWSPackageEvidence',
     'Write-OWSBaselineReport'
 )
