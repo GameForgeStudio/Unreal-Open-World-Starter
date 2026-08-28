@@ -10,6 +10,36 @@ Current automation proves selected behavior inside the full OWS starter project.
 
 The compatibility-first migration backlog requires those checks to be established before reusable ownership is retired from the project shell. Until that work merges, documentation must distinguish a passing full-project integration test from reusable OWS plugin conformance.
 
+### Platform migration baseline and guardrails
+
+[OWS_PLATFORM_BASELINE.md](OWS_PLATFORM_BASELINE.md) defines the issue #115 reproduction record, current known-gap ownership, result vocabulary, redaction rules, and cleanup contract. Its baseline runner reports current violations without changing them.
+
+PowerShell 7 (`pwsh`) is required for the runner's Draft 2020-12 JSON Schema validation. Windows PowerShell 5.1 may invoke the scripts only when `pwsh` is on `PATH`, because schema validation is delegated to a PowerShell 7 child process.
+
+Run the reporting self-test from the repository root without launching Unreal:
+
+```powershell
+pwsh -NoProfile -File .\Scripts\PlatformBaseline\TestOWSPlatformBaseline.ps1
+```
+
+Capture static source, descriptor, dependency, reference-lead, and configuration evidence to a JSON path outside the repository:
+
+```powershell
+pwsh -NoProfile -File .\Scripts\RunOWSPlatformBaseline.ps1 `
+  -StaticOnly `
+  -OutputPath <outside-repo-json>
+```
+
+Run the full Unreal-backed baseline with:
+
+```powershell
+pwsh -NoProfile -File .\Scripts\RunOWSPlatformBaseline.ps1 `
+  -EngineRoot C:\UE_5.8 `
+  -OutputPath <outside-repo-json>
+```
+
+The full capture records the guardrail self-test plus phase-specific build, smoke, automation, UAT cook exit, package-output oracle, manifest, and cleanup results. Packaged launch remains explicitly `BLOCKED` and owned by issue #17 until a deterministic oracle exists. Until the full command runs against the exact recorded commit, Unreal-backed results are `NR`; static capture is not a substitute. The self-contained JSON and sibling `.sha256` sidecar must contain no secret values, especially the credential tracked by issue #114. External tools may transiently write into isolated task scratch, which is sanitized after each phase and mandatorily deleted; none of that scratch is retained or used to modify a repository file merely to make a guardrail pass.
+
 ## Shared gameplay-spine conformance status
 
 The accepted [OWS Shared Gameplay Spine, Authority, and Persistence Contract](OWS_GAMEPLAY_SPINE_ARCHITECTURE.md) defines the conformance matrix for identity, action, GAS, tags/events, vitality/affiliation, inventory/equipment, authority, networking, persistence, recovery, the City boundary, notifications, and observability. The current repository does not yet implement or certify that target.
