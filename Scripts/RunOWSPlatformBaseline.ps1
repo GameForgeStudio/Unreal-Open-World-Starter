@@ -536,15 +536,42 @@ function Stop-OWSTaskOwnedProcesses {
     return @($Unclear | ForEach-Object { $_ })
 }
 
+function ConvertTo-OWSComparableWorktreePath {
+    param([Parameter(Mandatory)][string]$Path)
+
+    $FullPath = [System.IO.Path]::GetFullPath($Path)
+    if ([System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT) {
+        $SubstCommand = Get-Command subst.exe -ErrorAction SilentlyContinue
+        $PathRoot = [System.IO.Path]::GetPathRoot($FullPath).TrimEnd('\')
+        if ($null -ne $SubstCommand -and -not [string]::IsNullOrWhiteSpace($PathRoot)) {
+            foreach ($Line in @(& $SubstCommand.Source 2>$null)) {
+                if ([string]$Line -match '^([A-Za-z]:)\\: => (.+)$' -and
+                    $Matches[1].Equals($PathRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+                    $RelativePath = $FullPath.Substring(([System.IO.Path]::GetPathRoot($FullPath)).Length)
+                    $MappedRoot = [System.IO.Path]::GetFullPath($Matches[2].Trim())
+                    $FullPath = if ([string]::IsNullOrWhiteSpace($RelativePath)) {
+                        $MappedRoot
+                    }
+                    else {
+                        [System.IO.Path]::GetFullPath((Join-Path $MappedRoot $RelativePath))
+                    }
+                    break
+                }
+            }
+        }
+    }
+    return $FullPath.TrimEnd('\', '/').Replace('\', '/')
+}
+
 function Test-OWSRegisteredWorktree {
     param([Parameter(Mandatory)][string]$RepositoryRoot, [Parameter(Mandatory)][string]$WorktreeRoot)
 
-    $Expected = [System.IO.Path]::GetFullPath($WorktreeRoot).Replace('\', '/')
+    $Expected = ConvertTo-OWSComparableWorktreePath -Path $WorktreeRoot
     $Lines = @(& git -c core.longpaths=true -C $RepositoryRoot worktree list --porcelain 2>$null)
     if ($LASTEXITCODE -ne 0) { throw 'Unable to enumerate registered Git worktrees.' }
     foreach ($Line in $Lines) {
         if ([string]$Line -like 'worktree *') {
-            $Actual = ([string]$Line).Substring(9).Trim().Replace('\', '/')
+            $Actual = ConvertTo-OWSComparableWorktreePath -Path (([string]$Line).Substring(9).Trim())
             if ($Actual.Equals($Expected, [System.StringComparison]::OrdinalIgnoreCase)) { return $true }
         }
     }
