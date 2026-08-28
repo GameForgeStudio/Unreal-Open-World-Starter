@@ -27,12 +27,16 @@ namespace OWSSelectorTests
 	{
 	public:
 		explicit FRuntimeReadoutCommand(FAutomationTestBase& InTest)
-			: Test(InTest), StartedAt(FPlatformTime::Seconds())
+			: Test(InTest)
 		{
 		}
 
 		virtual bool Update() override
 		{
+			if (StartedAt <= 0.0)
+			{
+				StartedAt = FPlatformTime::Seconds();
+			}
 			if (GEngine)
 			{
 				for (const FWorldContext& Context : GEngine->GetWorldContexts())
@@ -60,7 +64,8 @@ namespace OWSSelectorTests
 							Selector->HasValidSelectorStacks());
 						bRangeSelectorsDisabled = true;
 					}
-					if (Selector && Selector->IsDebugReadoutMounted() && !TargetCharacter.IsValid())
+					if (Selector && Selector->IsDebugReadoutMounted() &&
+						(!TargetCharacter.IsValid() || !TargetMenuToken.IsValid()))
 					{
 						for (TActorIterator<AActor> It(World); It; ++It)
 						{
@@ -121,7 +126,7 @@ namespace OWSSelectorTests
 
 	private:
 		FAutomationTestBase& Test;
-		double StartedAt;
+		double StartedAt = 0.0;
 		TWeakObjectPtr<ACharacter> TargetCharacter;
 		TWeakObjectPtr<AActor> TargetMenuToken;
 		float TargetMenuTokenDistanceSquared = TNumericLimits<float>::Max();
@@ -133,12 +138,16 @@ namespace OWSSelectorTests
 	{
 	public:
 		explicit FActivationRoutingCommand(FAutomationTestBase& InTest)
-			: Test(InTest), StartedAt(FPlatformTime::Seconds())
+			: Test(InTest)
 		{
 		}
 
 		virtual bool Update() override
 		{
+			if (StartedAt <= 0.0)
+			{
+				StartedAt = FPlatformTime::Seconds();
+			}
 			if (!GEngine)
 			{
 				return HasTimedOut();
@@ -255,7 +264,7 @@ namespace OWSSelectorTests
 		}
 
 		FAutomationTestBase& Test;
-		double StartedAt;
+		double StartedAt = 0.0;
 		TWeakObjectPtr<APawn> TargetVehicle;
 		TWeakObjectPtr<UOWSInteractionTargetComponent> TargetDoor;
 		bool bActivationRequested = false;

@@ -29,6 +29,7 @@ $ContainerManifestPath = $null
 $AssetBaselinePath = $null
 $AssetSizeCsvPath = $null
 $SelectorReportPath = $null
+$SelectorEvidence = $null
 $ResolvedEngineRoot = $null
 $EngineChangelist = $null
 $CompatibleChangelist = $null
@@ -42,6 +43,7 @@ $InitialRelevantProcesses = @()
 $RunStartedUtc = [DateTime]::UtcNow
 $SanitizedTaskFiles = @{}
 $SelfTest = $null
+$Selector = $null
 $PackageResult = $null
 $PackageOracle = $null
 
@@ -189,25 +191,87 @@ function ConvertTo-OWSCommandResult {
     return [ordered]@{ status = 'FAIL'; detail = $FailureDetail; evidence_refs = @("command://$($Command.id)") }
 }
 
-function Test-OWSSelectorReport {
+function Get-OWSSelectorReportEvidence {
     param([string]$ReportDirectory)
 
-    $IndexPath = Join-Path $ReportDirectory 'index.json'
-    if (-not (Test-Path -LiteralPath $IndexPath -PathType Leaf)) { return $false }
-    $Data = Get-Content -Raw -LiteralPath $IndexPath | ConvertFrom-Json
-    $Tests = @($Data.tests | Where-Object { $_.fullTestPath -like 'OWS.Selector.*' })
     $Expected = @(
         'OWS.Selector.DefaultStack',
         'OWS.Selector.SharedCharacterAttachment',
         'OWS.Selector.RuntimeReadout',
         'OWS.Selector.VehicleActivationRouting'
     )
-    if ($Tests.Count -ne $Expected.Count) { return $false }
-    foreach ($Name in $Expected) {
-        $Match = @($Tests | Where-Object { $_.fullTestPath -eq $Name })
-        if ($Match.Count -ne 1 -or $Match[0].state -ne 'Success') { return $false }
+    $IndexPath = Join-Path $ReportDirectory 'index.json'
+    if (-not (Test-Path -LiteralPath $IndexPath -PathType Leaf)) {
+        return [ordered]@{
+            valid = $false
+            report_status = 'MISSING'
+            expected_tests = $Expected
+            observed_tests = @()
+            missing_tests = $Expected
+            unexpected_tests = @()
+            failed_tests = @()
+        }
     }
-    return $true
+    try {
+        $Data = Get-Content -Raw -LiteralPath $IndexPath | ConvertFrom-Json
+    }
+    catch {
+        return [ordered]@{
+            valid = $false
+            report_status = 'INVALID'
+            expected_tests = $Expected
+            observed_tests = @()
+            missing_tests = $Expected
+            unexpected_tests = @()
+            failed_tests = @()
+            parse_failure = ConvertTo-OWSSanitizedText -Text ($_.Exception.GetType().FullName + ': selector report JSON parsing failed')
+        }
+    }
+    if ($null -eq $Data.PSObject.Properties['tests']) {
+        return [ordered]@{
+            valid = $false
+            report_status = 'INVALID'
+            expected_tests = $Expected
+            observed_tests = @()
+            missing_tests = $Expected
+            unexpected_tests = @()
+            failed_tests = @()
+            parse_failure = 'Selector report tests array is missing.'
+        }
+    }
+    $Observed = @($Data.tests | Where-Object { $_.fullTestPath -like 'OWS.Selector.*' } | ForEach-Object {
+        $TestRecord = $_
+        $EntryEvents = @(
+            if ($null -ne $TestRecord.PSObject.Properties['entries']) {
+                foreach ($Entry in @($TestRecord.entries)) {
+                    if ($null -ne $Entry -and $null -ne $Entry.PSObject.Properties['event']) {
+                        $Entry.event
+                    }
+                }
+            }
+        )
+        $FailureEntries = @($EntryEvents | Where-Object { $_.type -eq 'Error' } | ForEach-Object {
+            ConvertTo-OWSPortableArgument -Value (ConvertTo-OWSSanitizedText -Text ([string]$_.message))
+        } | Sort-Object -Unique)
+        [ordered]@{
+            full_test_path = [string]$TestRecord.fullTestPath
+            state = [string]$TestRecord.state
+            failure_entries = $FailureEntries
+        }
+    } | Sort-Object { [string]$_['full_test_path'] })
+    $ObservedNames = @($Observed | ForEach-Object { [string]$_.full_test_path })
+    $Missing = @($Expected | Where-Object { $_ -notin $ObservedNames })
+    $Unexpected = @($ObservedNames | Where-Object { $_ -notin $Expected })
+    $Failed = @($Observed | Where-Object { $_.state -ne 'Success' } | ForEach-Object { $_.full_test_path })
+    return [ordered]@{
+        valid = ($Observed.Count -eq $Expected.Count -and $Missing.Count -eq 0 -and $Unexpected.Count -eq 0 -and $Failed.Count -eq 0)
+        report_status = 'READ'
+        expected_tests = $Expected
+        observed_tests = $Observed
+        missing_tests = $Missing
+        unexpected_tests = $Unexpected
+        failed_tests = $Failed
+    }
 }
 
 function Assert-OWSContainedPath {
@@ -446,7 +510,11 @@ function Invoke-OWSPackageOutputOracle {
     }
 
     $PortableFailure = if ($null -eq $Failure) { $null } else { ConvertTo-OWSPortableArgument -Value $Failure }
-    $PortableMissing = if ($null -eq $Evidence) { @() } else { @($Evidence.missing | ForEach-Object { ConvertTo-OWSPortableArgument -Value ([string]$_) }) }
+    $PortableMissing = @(
+        if ($null -ne $Evidence) {
+            $Evidence.missing | ForEach-Object { ConvertTo-OWSPortableArgument -Value ([string]$_) }
+        }
+    )
     $Passed = $null -eq $Failure -and [bool]$Evidence.valid
     $Detail = if ($null -ne $Failure) {
         'Package output oracle could not inspect every required output: ' + $PortableFailure
@@ -696,7 +764,9 @@ try {
             $CommandRecords.Add($CleanStart)
             $Selector = Invoke-OWSRecordedCommand -Id 'selector_tests' -FilePath $EditorCommand -Arguments @($ProjectPath, '-ExecCmds=Automation RunTests OWS.Selector', '-TestExit=Automation Test Queue Empty', "-ReportExportPath=$SelectorReportPath", '-unattended', '-nop4', '-nosplash', '-nosound', '-RenderOffscreen', '-notraceserver', '-nolog', '-stdout', '-FullStdOutLogOutput', '-UTF8Output') -LogRoot $LogsPath
             $CommandRecords.Add($Selector)
-            if ($Selector.result -eq 'PASS' -and -not (Test-OWSSelectorReport -ReportDirectory $SelectorReportPath)) { $Selector.result = 'FAIL' }
+            $SelectorEvidence = Get-OWSSelectorReportEvidence -ReportDirectory $SelectorReportPath
+            if ($Selector.result -eq 'PASS' -and -not $SelectorEvidence.valid) { $Selector.result = 'FAIL' }
+            $Selector['report_evidence'] = $SelectorEvidence
             $CharacterVehicle = Invoke-OWSRecordedCommand -Id 'character_vehicle_tests' -FilePath $PowerShellCommand -Arguments @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $WorktreePath 'Scripts\RunOWSCharacterVehicleTests.ps1'), '-EngineRoot', $ResolvedEngineRoot) -LogRoot $LogsPath
             $CommandRecords.Add($CharacterVehicle)
             $UATArguments = @(
@@ -930,6 +1000,12 @@ try {
         else {
             ConvertTo-OWSCommandResult -Command $SelfTest -PassDetail 'The non-Unreal baseline guardrail self-test passed.' -FailureDetail 'The baseline guardrail self-test did not pass.'
         }
+        $FallbackSelectorResult = if ($null -eq $Selector) {
+            [ordered]@{ status = 'BLOCKED'; detail = 'Full baseline orchestration failed before selector automation ran.' }
+        }
+        else {
+            ConvertTo-OWSCommandResult -Command $Selector -PassDetail 'Selector automation passed before later orchestration failed.' -FailureDetail 'Selector automation did not pass before later orchestration failed.'
+        }
         $FallbackResults = [ordered]@{
             self_test = $FallbackSelfTestResult
             static = [ordered]@{ status = 'PASS'; detail = 'Fallback static baseline collectors completed; the attempted full capture remains invalid.' }
@@ -937,7 +1013,7 @@ try {
             build = [ordered]@{ status = 'BLOCKED'; detail = 'Full baseline orchestration failed.' }
             asset_registry = [ordered]@{ status = 'BLOCKED'; detail = 'Full baseline orchestration failed.' }
             clean_start = [ordered]@{ status = 'BLOCKED'; detail = 'Full baseline orchestration failed.' }
-            selector = [ordered]@{ status = 'BLOCKED'; detail = 'Full baseline orchestration failed.' }
+            selector = $FallbackSelectorResult
             character_vehicle = [ordered]@{ status = 'BLOCKED'; detail = 'Full baseline orchestration failed.' }
             cook = [ordered]@{ status = 'BLOCKED'; detail = 'Full baseline orchestration failed.' }
             package = [ordered]@{ status = 'BLOCKED'; detail = 'Full baseline orchestration failed before the package-output oracle passed.'; missing = @() }
@@ -963,6 +1039,18 @@ try {
         }
         $Report.results.static['evidence_refs'] = @('command://static_collectors')
         $Report.summary.capture_status = 'INVALID'
+    }
+
+    if ($null -ne $SelectorEvidence) {
+        $Report.results.selector['report_evidence'] = $SelectorEvidence
+    }
+
+    if ($null -ne $FatalMessage) {
+        $Report.results['orchestration'] = [ordered]@{
+            status = 'FAIL'
+            detail = ConvertTo-OWSPortableArgument -Value ('Full baseline orchestration failed: ' + $FatalMessage)
+            evidence_refs = @('runner://orchestration')
+        }
     }
 
     $OriginalPostState = Get-OWSRepositoryState -RepositoryRoot $ProjectRoot

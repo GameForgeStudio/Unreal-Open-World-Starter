@@ -655,7 +655,11 @@ function Read-OWSCsvEvidence {
         }
         $Safe
     }
-    $Columns = if ($Imported.Count -gt 0) { @($Imported[0].PSObject.Properties.Name | Sort-Object) } else { @() }
+    $Columns = @(
+        if ($Imported.Count -gt 0) {
+            $Imported[0].PSObject.Properties.Name | Sort-Object
+        }
+    )
     $SortedRows = @($Rows | Sort-Object { $_ | ConvertTo-Json -Compress })
     return [ordered]@{
         status = 'PASS'
@@ -1168,13 +1172,16 @@ catch {
     $StartInfo.RedirectStandardInput = $true
     $StartInfo.RedirectStandardOutput = $true
     $StartInfo.RedirectStandardError = $true
+    $StandardInputEncoding = New-Object System.Text.UTF8Encoding($false)
     $StartInfo.EnvironmentVariables['OWS_BASELINE_SCHEMA_VALIDATION_PATH'] = $ResolvedSchema
-    $StartInfo.EnvironmentVariables['OWS_BASELINE_SCHEMA_INPUT_CODE_PAGE'] = [string][Console]::InputEncoding.CodePage
+    $StartInfo.EnvironmentVariables['OWS_BASELINE_SCHEMA_INPUT_CODE_PAGE'] = [string]$StandardInputEncoding.CodePage
     $Process = New-Object System.Diagnostics.Process
     $Process.StartInfo = $StartInfo
     try {
         [void]$Process.Start()
-        $Process.StandardInput.Write($Json)
+        $InputBytes = $StandardInputEncoding.GetBytes($Json)
+        $Process.StandardInput.BaseStream.Write($InputBytes, 0, $InputBytes.Length)
+        $Process.StandardInput.BaseStream.Flush()
         $Process.StandardInput.Close()
         $StandardOutput = $Process.StandardOutput.ReadToEnd()
         $StandardError = $Process.StandardError.ReadToEnd()
