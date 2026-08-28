@@ -1,6 +1,6 @@
 # OWS Platform Migration Baseline and Guardrail Contract
 
-> **Status:** Reproduction contract and current known-gap ledger for [issue #115](https://github.com/GameForgeStudio/Unreal-Open-World-Starter/issues/115). The static findings below describe the compatibility baseline that later migrations must preserve or deliberately replace. They do not authorize a fix, file move, configuration change, API promotion, cook exclusion, or runtime-behavior change. Unreal-dependent results remain `NR` until the full baseline runner records them against the exact tested commit.
+> **Status:** Reproduction contract, validated current-state execution record, and known-gap ledger for [issue #115](https://github.com/GameForgeStudio/Unreal-Open-World-Starter/issues/115). The findings below describe the compatibility baseline that later migrations must preserve or deliberately replace. They do not authorize a fix, file move, configuration change, API promotion, cook exclusion, or runtime-behavior change. This record does not claim Stage 1 target conformance, and issue #115 remains subject to its publication gate.
 
 ## Purpose
 
@@ -62,30 +62,40 @@ The full run first executes and records the standalone guardrail self-test, then
 
 ## Required execution record
 
-The first accepted full run replaces the `NR` values below with the exact durable record. Until then, this table makes no execution claim.
+The table below records the validated full run for the exact tested commit. A later code, asset, descriptor, configuration, map, or runner change requires a new report rather than silently extending this record.
 
 | Field | Current recorded value |
 | --- | --- |
-| Report schema/version | `NR` |
-| UTC start and finish | `NR` |
-| Git commit and branch | `NR` |
-| Pre-run working-tree state | `NR` |
-| Post-run working-tree equivalence | `NR` |
-| Unreal Engine version and root | `NR` |
-| Host OS and architecture | `NR` |
-| Target and configuration | `NR` |
-| Declared composition/profile | `NR` |
-| Static guardrail self-test | `NR` |
-| Static dependency/reference capture | `NR` |
-| `OWSEditor Win64 Development` build | `NR` |
-| Clean-start canonical-map smoke | `NR` |
-| Selector and Character/Vehicle automation | `NR` |
-| Cook/package command and result | `NR` |
-| Cooked/staged manifest and size | `NR` |
-| Cleanup audit | `NR` |
-| External report location and checksum | `NR` |
+| Report schema/version | `1.0.0`; claim scope `current-baseline-only`; capture status `VALID`; target conformance not claimed. |
+| UTC start and finish | `2026-08-28T03:04:01Z` to `2026-08-28T03:20:29Z`. |
+| Git commit and branch | Commit `9a0ea17e3e49b5524d217d50db8c38f27ee3dcb4`; tree `76f9c0557f7e514c0c1d5cb8770023c2f6fb9113`; branch `chore/115-platform-baseline-guardrails`; detached disposable worktree at the invoking commit. |
+| Pre-run working-tree state | `PASS`: clean, zero dirty entries; digest `136f1af8f12151ce42de202748d15dec28e04b52594796626dfe015e62b7e23d`. |
+| Post-run working-tree equivalence | `PASS`: identical post-run digest, zero tracked mutations, and disposable worktree removed. |
+| Unreal Engine version and root | Unreal Engine `5.8.1`, changelist `56057345`, compatible changelist `55116800`; `C:\UE_5.8`. |
+| Host OS and architecture | `Microsoft Windows NT 10.0.26200.0`; `AMD64`. |
+| Target and configuration | Editor: `OWSEditor Win64 Development`; package: `OWS Win64 Development`. |
+| Declared composition/profile | `legacy-current-defaults-no-profile-system`. |
+| Static guardrail self-test | `PASS`; exit `0`; 6,485 ms. |
+| Static dependency/reference capture | `PASS`; seven known gaps, one observation, zero candidate resolutions, and zero new unowned gaps. |
+| `OWSEditor Win64 Development` build | `PASS`; exit `0`; 165,904 ms. |
+| Clean-start canonical-map smoke | `PASS`; exit `0`; 64,754 ms. |
+| Selector and Character/Vehicle automation | `PASS`: both suites passed their exact current-integration oracles; no reusable-domain conformance is claimed. |
+| Cook/package command and result | `PASS`: `BuildCookRun` exited `0`; the separate package-output oracle passed with a sanitized 352-byte Zen package-store marker, whose SHA-256 is `b67e5465a9c0e1ba05fbcd27ce0aa48b84cb24744300b5a2295bf61ed31a7ebb`. Packaged launch remains `BLOCKED` under issue #17. |
+| Cooked/staged manifest and size | `PASS`: stage and archive each contain 51 files / 1,324,367,416 bytes; cook metadata contains 29 files / 156,504,767 bytes; the cooked Asset Registry dump contains 21 files / 9,951,476 bytes; AssetSizeQuery contains 2,537 rows / 378,439 bytes; three container manifests contain 6,409 rows. |
+| Cleanup audit | `PASS`: run-owned scratch was removed; `cleanup_passed=true`; no cleanup issue. |
+| External report location and checksum | `C:\Projects\OWS-Platform-Baselines\OWS_PLATFORM_BASELINE_9a0ea17e3e49b5524d217d50db8c38f27ee3dcb4.json` plus `.sha256`; SHA-256 `ccf42e76916417e797d46a489b25f1f7f36c6e01bec766118e0e3e48a628c9a1`. |
 
-The report also records each phase's executable/argument vector, exit code, duration, and embedded evidence reference. `-OutputPath` receives the self-contained JSON, and the runner writes a sibling `<report>.sha256` sidecar containing the report's SHA-256 checksum. Environment-specific absolute engine/report paths may be recorded when needed for reproduction, but secrets, personal access tokens, private keys, signed URLs, and secret-derived values may not appear.
+The tested source commit was invoked with:
+
+```powershell
+pwsh.exe -NoLogo -NoProfile -File .\Scripts\RunOWSPlatformBaseline.ps1 `
+  -EngineRoot C:\UE_5.8 `
+  -OutputPath W:\ows-platform-full-9a0ea17.json
+```
+
+`W:` was the task-owned scratch mapping used for the run; the validated JSON and sidecar were copied to the retained external location recorded above before final task cleanup. The report records 17 child command entries (`worktree_add`, self-test, LFS verification, editor build, Asset Registry export, clean-start smoke, both automation suites, cook/package, package oracle, cooked Asset Registry dump, AssetSizeQuery, three container-manifest commands, static collectors, and `worktree_remove`) with each exact executable/argument vector, exit code, duration, and embedded evidence reference. Every child command returned exit code `0` and result `PASS`.
+
+This execution record was added by a later documentation-only commit. Its tested source commit is deliberately explicit; the record does not imply that the record-only commit itself was the Unreal-tested code. `-OutputPath` receives the self-contained JSON, and the runner writes a sibling `<report>.sha256` sidecar containing the report's SHA-256 checksum. Environment-specific absolute engine/report paths may be recorded when needed for reproduction, but secrets, personal access tokens, private keys, signed URLs, and secret-derived values may not appear.
 
 ## Confirmed static inventory
 
@@ -116,21 +126,21 @@ The table reports current facts; it does not authorize the owning issue or broad
 | Protected shell-to-plugin composition | Current `/Game/OWS` Character assets consume GASPALS; the canonical map and external actors consume KinetiForge; the current controller consumes OWSCore. | Shell-to-plugin composition is allowed and must remain behaviorally protected. #120/#163, #121, and #122 control later migration and retirement; a guardrail reports these edges but does not fail merely because they exist. |
 | Committed Android File Server credential | Project configuration contains a non-empty committed static credential. Its value is intentionally omitted. | [#114](https://github.com/GameForgeStudio/Unreal-Open-World-Starter/issues/114) exclusively owns safe removal, rotation/revocation, future local/generated handling, and Aurora's separate history-remediation decision. #115 may detect and redact; it may not remediate. |
 
-## Dynamic evidence still required
+## Recorded dynamic evidence
 
-Every row below remains `NR` until the full runner records the exact result.
+The exact tested commit produced the results below. They are a current-state baseline, not reusable-domain or Stage 1 conformance.
 
 | Evidence | Status | Required oracle |
 | --- | --- | --- |
-| Git/LFS checkout integrity | `NR` | Checked-out LFS objects are valid; command and commit are recorded. |
-| Editor target build | `NR` | `OWSEditor Win64 Development` completes for the declared Unreal 5.8 installation. |
-| Canonical-map startup and Map Check | `NR` | Required modules/assets load; the canonical maps and protected three-character setup satisfy the existing smoke oracle. |
-| Current integration automation | `NR` | Selector and Character/Vehicle suites retain their exact existing results without being treated as reusable-domain conformance. |
-| Asset Registry dependency graph | `NR` | Hard-package, soft-package, hard-management, soft-management, and searchable-name edges are recorded separately. Blueprint parent tags and map, HLOD, Data Layer, World Partition, external-actor, and external-object roles are classified from unloaded Asset Registry class, path, and tag data where the engine exposes them; World Partition maps retain and validate the authoritative `LevelIsPartitioned` tag. |
-| Cook and package | `NR` | The declared target/profile cooks and packages; exact commands and failures are preserved. |
-| Cooked/staged contents and size | `NR` | Durable manifests record files, packages, modules/plugins, sizes, and unexpected Editor/Test/example content without silently removing it. |
-| Packaged launch | `NR` | The current runner records `BLOCKED`, cause, and owner issue #17 until that issue supplies a deterministic packaged-launch oracle. |
-| Working-tree preservation | `NR` | Pre-run tracked/untracked state equals post-run state after task-owned outputs are cleaned. |
+| Git/LFS checkout integrity | `PASS` | Checked-out LFS objects are valid; command and commit are recorded. |
+| Editor target build | `PASS` | `OWSEditor Win64 Development` completed for Unreal Engine 5.8.1. |
+| Canonical-map startup and Map Check | `PASS` | Required modules/assets loaded; the canonical maps and protected three-character setup satisfied the existing smoke oracle. |
+| Current integration automation | `PASS` | Selector and Character/Vehicle suites retained their exact existing results without being treated as reusable-domain conformance. |
+| Asset Registry dependency graph | `PASS` | The unloaded Asset Registry export recorded 12,005 assets and all 12 declared classification capabilities. Hard-package, soft-package, hard-management, soft-management, searchable-name, Blueprint-parent, map, HLOD, Data Layer, World Partition, external-actor, and external-object evidence remains typed rather than inferred from strings. |
+| Cook and package | `PASS` | The declared `OWS Win64 Development` target/profile cooked and packaged; UAT exit and the package-output oracle are recorded separately. |
+| Cooked/staged contents and size | `PASS` | Stage, archive, cook metadata, cooked Asset Registry, AssetSizeQuery, plugin-size, and container-manifest inventories are embedded with counts, sizes, and checksums. |
+| Packaged launch | `BLOCKED` | No deterministic packaged-launch oracle exists yet; issue #17 owns the required future evidence. |
+| Working-tree preservation | `PASS` | Pre-run and post-run digests are identical, tracked mutations are zero, and the disposable worktree was removed. |
 
 ## Secret-redaction contract
 

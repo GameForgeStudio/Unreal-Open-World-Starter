@@ -6,7 +6,7 @@ This directory documents the current OWS implementation, accepted target archite
 
 - [STACK.md](STACK.md) — current package structure and runtime ownership.
 - [OWS_PLATFORM_ARCHITECTURE.md](OWS_PLATFORM_ARCHITECTURE.md) — accepted Stage 1 product layers, maintained-fork model, plugin families, dependency and ownership matrix, extension contract, conformance rules, and migration backlog.
-- [OWS_PLATFORM_BASELINE.md](OWS_PLATFORM_BASELINE.md) — issue #115 pre-migration reproduction contract, non-mutating guardrail commands, current known-gap ownership ledger, pending execution record, secret-redaction rules, and cleanup requirements.
+- [OWS_PLATFORM_BASELINE.md](OWS_PLATFORM_BASELINE.md) — issue #115 pre-migration reproduction contract, non-mutating guardrail commands, validated current-state execution record, current known-gap ownership ledger, secret-redaction rules, and cleanup requirements.
 - [OWS_GAMEPLAY_SPINE_ARCHITECTURE.md](OWS_GAMEPLAY_SPINE_ARCHITECTURE.md) — accepted Stage 2 identity, action, GAS, inventory/equipment, authority, networking, persistence, recovery, notification, and conformance contract.
 - [OWS_ARCHITECTURE_ROADMAP.md](OWS_ARCHITECTURE_ROADMAP.md) — accepted product shape, five-stage architecture sequence, checkout gates, and later-stage decisions.
 - [OWS_MOBILITY_PROGRAM_CHARTER.md](OWS_MOBILITY_PROGRAM_CHARTER.md) — accepted Stage 3 Mobility selection, current baseline, Character/Vehicle/Integration ownership split, physical principles, capability envelope, and architecture-program gates.
