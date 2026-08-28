@@ -17,6 +17,7 @@
 #include "OWSSelectorComponent.h"
 #include "OWSStockVehicleInteractionComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/PrimitiveComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 
 namespace OWSSelectorTests
@@ -27,12 +28,16 @@ namespace OWSSelectorTests
 	{
 	public:
 		explicit FRuntimeReadoutCommand(FAutomationTestBase& InTest)
-			: Test(InTest), StartedAt(FPlatformTime::Seconds())
+			: Test(InTest)
 		{
 		}
 
 		virtual bool Update() override
 		{
+			if (StartedAt <= 0.0)
+			{
+				StartedAt = FPlatformTime::Seconds();
+			}
 			if (GEngine)
 			{
 				for (const FWorldContext& Context : GEngine->GetWorldContexts())
@@ -60,7 +65,8 @@ namespace OWSSelectorTests
 							Selector->HasValidSelectorStacks());
 						bRangeSelectorsDisabled = true;
 					}
-					if (Selector && Selector->IsDebugReadoutMounted() && !TargetCharacter.IsValid())
+					if (Selector && Selector->IsDebugReadoutMounted() &&
+						(!TargetCharacter.IsValid() || !TargetMenuToken.IsValid()))
 					{
 						for (TActorIterator<AActor> It(World); It; ++It)
 						{
@@ -121,7 +127,7 @@ namespace OWSSelectorTests
 
 	private:
 		FAutomationTestBase& Test;
-		double StartedAt;
+		double StartedAt = 0.0;
 		TWeakObjectPtr<ACharacter> TargetCharacter;
 		TWeakObjectPtr<AActor> TargetMenuToken;
 		float TargetMenuTokenDistanceSquared = TNumericLimits<float>::Max();
@@ -133,12 +139,16 @@ namespace OWSSelectorTests
 	{
 	public:
 		explicit FActivationRoutingCommand(FAutomationTestBase& InTest)
-			: Test(InTest), StartedAt(FPlatformTime::Seconds())
+			: Test(InTest)
 		{
 		}
 
 		virtual bool Update() override
 		{
+			if (StartedAt <= 0.0)
+			{
+				StartedAt = FPlatformTime::Seconds();
+			}
 			if (!GEngine)
 			{
 				return HasTimedOut();
@@ -166,7 +176,8 @@ namespace OWSSelectorTests
 					{
 						UOWSStockVehicleInteractionComponent* Interaction =
 							It->FindComponentByClass<UOWSStockVehicleInteractionComponent>();
-						if (!Interaction)
+						if (!Interaction ||
+							!It->GetClass()->GetName().Contains(TEXT("DriftCar")))
 						{
 							continue;
 						}
@@ -174,44 +185,41 @@ namespace OWSSelectorTests
 						Interaction->GetDoorIds(DoorIds);
 						if (!DoorIds.IsEmpty())
 						{
-							TargetVehicle = *It;
-							TargetDoor = Interaction->GetDoorInteractionTarget(DoorIds[0]);
-							break;
+							UOWSInteractionTargetComponent* Door =
+								Interaction->GetDoorInteractionTarget(DoorIds[0]);
+							UPrimitiveComponent* VehicleBody = Interaction->GetVehiclePhysicsBody();
+							if (Door && VehicleBody)
+							{
+								TargetVehicle = *It;
+								TargetDoor = Door;
+								TargetVehicleBody = VehicleBody;
+								break;
+							}
 						}
 					}
-					if (!TargetVehicle.IsValid() || !TargetDoor.IsValid())
+					if (!TargetVehicle.IsValid() || !TargetDoor.IsValid() ||
+						!TargetVehicleBody.IsValid())
 					{
 						continue;
 					}
-					const float CapsuleHalfHeight = Character->GetCapsuleComponent()
-						? Character->GetCapsuleComponent()->GetScaledCapsuleHalfHeight()
-						: 90.0f;
-					const FTransform DoorTransform = TargetDoor->GetComponentTransform();
-					FVector DoorOutward = DoorTransform.GetRotation().GetForwardVector();
-					DoorOutward.Z = 0.0f;
-					DoorOutward.Normalize();
-					FVector Location = DoorTransform.GetLocation() + DoorOutward * 160.0f;
-					FCollisionQueryParams Params(
-						SCENE_QUERY_STAT(OWSSelectorActivationGround), false, Character);
-					Params.AddIgnoredActor(TargetVehicle.Get());
-					FHitResult GroundHit;
-					if (World->LineTraceSingleByChannel(
-						GroundHit,
-						FVector(Location.X, Location.Y, TargetVehicle->GetActorLocation().Z + 500.0f),
-						FVector(Location.X, Location.Y, TargetVehicle->GetActorLocation().Z - 500.0f),
-						ECC_Pawn, Params) && GroundHit.ImpactNormal.Z >= 0.7f)
+					TargetVehicleBody->SetPhysicsLinearVelocity(FVector::ZeroVector);
+					TargetVehicleBody->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+					if (!PlaceCharacterAtTargetDoor(*World, *Character, *Controller))
 					{
-						Location.Z = GroundHit.ImpactPoint.Z + CapsuleHalfHeight + 2.0f;
+						continue;
 					}
-					else
-					{
-						Location.Z = DoorTransform.GetLocation().Z + CapsuleHalfHeight - 55.0f;
-					}
-					const FRotator AimRotation =
-						(DoorTransform.GetLocation() - Location).Rotation();
-					Character->SetActorLocationAndRotation(
-						Location, AimRotation, false, nullptr, ETeleportType::TeleportPhysics);
-					Controller->SetControlRotation(AimRotation);
+					EntryPreparedAt = FPlatformTime::Seconds();
+					bEntryPrepared = true;
+					continue;
+				}
+				if (bEntryPrepared && FPlatformTime::Seconds() - EntryPreparedAt < 0.25)
+				{
+					continue;
+				}
+				TargetVehicleBody->SetPhysicsLinearVelocity(FVector::ZeroVector);
+				TargetVehicleBody->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+				if (!PlaceCharacterAtTargetDoor(*World, *Character, *Controller))
+				{
 					continue;
 				}
 				FVector RayOrigin = Character->GetActorLocation();
@@ -229,9 +237,23 @@ namespace OWSSelectorTests
 					Test.TestEqual(TEXT("Selector resolves the exact authored vehicle door"),
 						Selector->GetDetectedInteractionTarget()->InteractionId,
 						TargetDoor->InteractionId);
+					FText AvailabilityFailure;
+					if (!TargetDoor->CanActivate(Controller, AvailabilityFailure))
+					{
+						if (!AvailabilityFailure.IsEmpty())
+						{
+							LastAvailabilityFailure = AvailabilityFailure;
+						}
+						continue;
+					}
+					const bool bActivationAccepted = Selector->ActivateCurrentTarget();
+					if (!Test.TestTrue(
+							TEXT("Shared Activate dispatch accepts the selected door"),
+							bActivationAccepted))
+					{
+						return true;
+					}
 					bActivationRequested = true;
-					Test.TestTrue(TEXT("Shared Activate dispatch accepts the selected door"),
-						Selector->ActivateCurrentTarget());
 				}
 				if (bActivationRequested && Controller->GetPawn() == TargetVehicle.Get())
 				{
@@ -243,21 +265,74 @@ namespace OWSSelectorTests
 		}
 
 	private:
+		bool PlaceCharacterAtTargetDoor(
+			UWorld& World,
+			ACharacter& Character,
+			APlayerController& Controller) const
+		{
+			if (!TargetVehicle.IsValid() || !TargetDoor.IsValid())
+			{
+				return false;
+			}
+			const float CapsuleHalfHeight = Character.GetCapsuleComponent()
+				? Character.GetCapsuleComponent()->GetScaledCapsuleHalfHeight()
+				: 90.0f;
+			const FTransform DoorTransform = TargetDoor->GetComponentTransform();
+			FVector DoorOutward = DoorTransform.GetRotation().GetForwardVector();
+			DoorOutward.Z = 0.0f;
+			DoorOutward.Normalize();
+			FVector Location = DoorTransform.GetLocation() + DoorOutward * 160.0f;
+			FCollisionQueryParams Params(
+				SCENE_QUERY_STAT(OWSSelectorActivationGround), false, &Character);
+			Params.AddIgnoredActor(TargetVehicle.Get());
+			FHitResult GroundHit;
+			if (World.LineTraceSingleByChannel(
+					GroundHit,
+					FVector(Location.X, Location.Y, TargetVehicle->GetActorLocation().Z + 500.0f),
+					FVector(Location.X, Location.Y, TargetVehicle->GetActorLocation().Z - 500.0f),
+					ECC_Pawn, Params) && GroundHit.ImpactNormal.Z >= 0.7f)
+			{
+				Location.Z = GroundHit.ImpactPoint.Z + CapsuleHalfHeight + 2.0f;
+			}
+			else
+			{
+				Location.Z = DoorTransform.GetLocation().Z + CapsuleHalfHeight - 55.0f;
+			}
+			FVector ToDoor = DoorTransform.GetLocation() - Location;
+			ToDoor.Z = 0.0f;
+			const FRotator AimRotation = ToDoor.Rotation();
+			Character.SetActorLocationAndRotation(
+				Location, AimRotation, false, nullptr, ETeleportType::TeleportPhysics);
+			Controller.SetControlRotation(AimRotation);
+			return true;
+		}
+
 		bool HasTimedOut()
 		{
 			if (FPlatformTime::Seconds() - StartedAt <= 20.0)
 			{
 				return false;
 			}
-			Test.AddError(TEXT(
-				"Timed out resolving and activating an authored vehicle-door target."));
+			FString Detail = TEXT(
+				"Timed out resolving and activating the canonical DriftCar door target.");
+			if (!LastAvailabilityFailure.IsEmpty())
+			{
+				Detail += FString::Printf(
+					TEXT(" Last availability reason: %s"),
+					*LastAvailabilityFailure.ToString());
+			}
+			Test.AddError(Detail);
 			return true;
 		}
 
 		FAutomationTestBase& Test;
-		double StartedAt;
+		double StartedAt = 0.0;
+		double EntryPreparedAt = 0.0;
 		TWeakObjectPtr<APawn> TargetVehicle;
 		TWeakObjectPtr<UOWSInteractionTargetComponent> TargetDoor;
+		TWeakObjectPtr<UPrimitiveComponent> TargetVehicleBody;
+		FText LastAvailabilityFailure;
+		bool bEntryPrepared = false;
 		bool bActivationRequested = false;
 	};
 }

@@ -1,0 +1,467 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/GameForgeStudio/Unreal-Open-World-Starter/blob/main/Scripts/PlatformBaseline/ows-platform-baseline.schema.json",
+  "title": "OWS platform baseline report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "claim_scope",
+    "started_utc",
+    "finished_utc",
+    "generated_utc",
+    "source",
+    "environment",
+    "commands",
+    "results",
+    "inventories",
+    "findings",
+    "artifacts",
+    "immutability",
+    "summary"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "claim_scope": {
+      "const": "current-baseline-only"
+    },
+    "started_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "finished_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "generated_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "commit",
+        "tree",
+        "branch",
+        "ref",
+        "checkout_mode",
+        "clean",
+        "dirty_entry_count",
+        "status_digest",
+        "runtime_input_digest"
+      ],
+      "properties": {
+        "repository": { "type": "string" },
+        "commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "tree": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "branch": { "type": ["string", "null"] },
+        "ref": { "type": "string", "minLength": 1 },
+        "checkout_mode": { "enum": ["working-tree", "detached-disposable-worktree-at-invoking-commit"] },
+        "clean": { "type": "boolean" },
+        "dirty_entry_count": { "type": "integer", "minimum": 0 },
+        "status_digest": { "$ref": "#/$defs/sha256" },
+        "runtime_input_digest": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "engine_association",
+        "os",
+        "architecture",
+        "editor_target",
+        "package_target",
+        "composition_profile"
+      ],
+      "properties": {
+        "engine_association": { "type": ["string", "null"] },
+        "engine_root": { "type": ["string", "null"] },
+        "engine_version": { "type": ["string", "null"] },
+        "engine_changelist": { "type": ["integer", "null"], "minimum": 0 },
+        "compatible_changelist": { "type": ["integer", "null"], "minimum": 0 },
+        "ubt_version": { "type": ["string", "null"] },
+        "os": { "type": "string" },
+        "architecture": { "type": "string" },
+        "editor_target": { "$ref": "#/$defs/target" },
+        "package_target": { "$ref": "#/$defs/target" },
+        "composition_profile": { "type": "string", "minLength": 1 },
+        "static_only": { "type": "boolean" }
+      }
+    },
+    "commands": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/command" }
+    },
+    "results": {
+      "type": "object",
+      "required": [
+        "self_test",
+        "static",
+        "lfs",
+        "build",
+        "asset_registry",
+        "clean_start",
+        "selector",
+        "character_vehicle",
+        "cook",
+        "package",
+        "cooked_asset_registry",
+        "asset_sizes",
+        "container_manifests",
+        "packaged_launch"
+      ],
+      "properties": {
+        "package": { "$ref": "#/$defs/packageResult" }
+      },
+      "additionalProperties": { "$ref": "#/$defs/result" }
+    },
+    "inventories": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "descriptors",
+        "module_dependencies",
+        "text_references",
+        "public_surfaces",
+        "config_keys",
+        "tests",
+        "cook_rules",
+        "binary_reference_leads",
+        "asset_registry",
+        "stage",
+        "archive",
+        "cook_metadata",
+        "cooked_asset_registry_dump",
+        "asset_sizes",
+        "container_manifests",
+        "plugin_sizes"
+      ],
+      "properties": {
+        "asset_registry": { "$ref": "#/$defs/assetRegistryInventory" }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/finding" }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["path", "type", "sha256", "bytes"],
+        "properties": {
+          "path": { "type": "string" },
+          "type": { "type": "string" },
+          "sha256": { "$ref": "#/$defs/sha256" },
+          "bytes": { "type": "integer", "minimum": 0 },
+          "count": { "type": ["integer", "null"], "minimum": 0 }
+        }
+      }
+    },
+    "immutability": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "pre_digest",
+        "post_digest",
+        "tracked_mutations",
+        "worktree_removed",
+        "cleanup_passed",
+        "cleanup_issue"
+      ],
+      "properties": {
+        "pre_digest": { "$ref": "#/$defs/sha256" },
+        "post_digest": { "$ref": "#/$defs/sha256" },
+        "tracked_mutations": { "type": "integer", "minimum": 0 },
+        "worktree_removed": { "type": "boolean" },
+        "cleanup_passed": { "type": "boolean" },
+        "cleanup_issue": { "type": ["string", "null"] }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "capture_status",
+        "known_gap_count",
+        "new_unowned_gap_count",
+        "observation_count",
+        "candidate_resolved_count",
+        "target_conformance_claimed"
+      ],
+      "properties": {
+        "capture_status": { "enum": ["VALID", "INVALID"] },
+        "known_gap_count": { "type": "integer", "minimum": 0 },
+        "new_unowned_gap_count": { "type": "integer", "minimum": 0 },
+        "observation_count": { "type": "integer", "minimum": 0 },
+        "candidate_resolved_count": { "type": "integer", "minimum": 0 },
+        "target_conformance_claimed": { "const": false }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["status", "detail"],
+      "properties": {
+        "status": { "enum": ["PASS", "FAIL", "BLOCKED", "NR", "N/A"] },
+        "detail": { "type": "string" },
+        "evidence_refs": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "packageStoreMarker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "path", "bytes", "sha256"],
+      "properties": {
+        "kind": { "enum": ["zen_project_store", "loose_package_store_manifest"] },
+        "path": { "type": "string", "minLength": 1 },
+        "bytes": { "type": "integer", "minimum": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "packageResult": {
+      "allOf": [
+        { "$ref": "#/$defs/result" },
+        {
+          "type": "object",
+          "properties": {
+            "package_store_marker": {
+              "oneOf": [
+                { "type": "null" },
+                { "$ref": "#/$defs/packageStoreMarker" }
+              ]
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": { "status": { "const": "PASS" } },
+                "required": ["status"]
+              },
+              "then": {
+                "required": ["package_store_marker"],
+                "properties": {
+                  "package_store_marker": { "$ref": "#/$defs/packageStoreMarker" }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "command": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "id",
+        "executable",
+        "argv",
+        "exit_code",
+        "result",
+        "duration_ms",
+        "log_sha256",
+        "evidence_ref"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "executable": { "type": "string", "minLength": 1 },
+        "argv": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "exit_code": { "type": ["integer", "null"] },
+        "result": { "enum": ["PASS", "FAIL", "BLOCKED", "NR", "N/A"] },
+        "duration_ms": { "type": "integer", "minimum": 0 },
+        "log_sha256": { "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$" },
+        "evidence_ref": { "type": "string", "minLength": 1 }
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target", "platform", "configuration"],
+      "properties": {
+        "target": { "type": "string", "minLength": 1 },
+        "platform": { "type": "string", "minLength": 1 },
+        "configuration": { "type": "string", "minLength": 1 }
+      }
+    },
+    "stringArray": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "assetRegistryCapabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hard_package",
+        "soft_package",
+        "manage_hard",
+        "manage_soft",
+        "searchable_name",
+        "blueprint_parent",
+        "map",
+        "hlod",
+        "data_layer",
+        "world_partition",
+        "external_actor",
+        "external_object"
+      ],
+      "properties": {
+        "hard_package": { "const": true },
+        "soft_package": { "const": true },
+        "manage_hard": { "const": true },
+        "manage_soft": { "const": true },
+        "searchable_name": { "const": true },
+        "blueprint_parent": { "const": true },
+        "map": { "const": true },
+        "hlod": { "const": true },
+        "data_layer": { "const": true },
+        "world_partition": { "const": true },
+        "external_actor": { "const": true },
+        "external_object": { "const": true }
+      }
+    },
+    "assetRegistryRecord": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "package_name",
+        "package_path",
+        "asset_name",
+        "asset_class",
+        "dependencies",
+        "classifications",
+        "registry_tags"
+      ],
+      "properties": {
+        "package_name": { "type": "string", "minLength": 1 },
+        "package_path": { "type": "string" },
+        "asset_name": { "type": "string" },
+        "asset_class": { "type": "string" },
+        "dependencies": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["hard_package", "soft_package", "manage_hard", "manage_soft", "searchable_name"],
+          "properties": {
+            "hard_package": { "$ref": "#/$defs/stringArray" },
+            "soft_package": { "$ref": "#/$defs/stringArray" },
+            "manage_hard": { "$ref": "#/$defs/stringArray" },
+            "manage_soft": { "$ref": "#/$defs/stringArray" },
+            "searchable_name": { "$ref": "#/$defs/stringArray" }
+          }
+        },
+        "classifications": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["blueprint_parent", "map", "hlod", "data_layer", "world_partition", "external_actor", "external_object"],
+          "properties": {
+            "blueprint_parent": { "$ref": "#/$defs/stringArray" },
+            "map": { "$ref": "#/$defs/stringArray" },
+            "hlod": { "$ref": "#/$defs/stringArray" },
+            "data_layer": { "$ref": "#/$defs/stringArray" },
+            "world_partition": { "$ref": "#/$defs/stringArray" },
+            "external_actor": { "$ref": "#/$defs/stringArray" },
+            "external_object": { "$ref": "#/$defs/stringArray" }
+          }
+        },
+        "registry_tags": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["parent_class", "native_parent_class", "generated_class", "level_is_partitioned"],
+          "properties": {
+            "parent_class": { "type": "string" },
+            "native_parent_class": { "type": "string" },
+            "generated_class": { "type": "string" },
+            "level_is_partitioned": { "type": "string" }
+          }
+        }
+      }
+    },
+    "assetRegistryInventory": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["status", "detail", "schema_version", "classification_capabilities", "asset_count", "assets"],
+      "properties": {
+        "status": { "enum": ["PASS", "NR"] },
+        "detail": { "type": "string" },
+        "schema_version": { "type": ["string", "null"] },
+        "classification_capabilities": { "type": "object" },
+        "asset_count": { "type": "integer", "minimum": 0 },
+        "assets": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/assetRegistryRecord" }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "const": "PASS" } }, "required": ["status"] },
+          "then": {
+            "properties": {
+              "schema_version": { "const": "1.0.0" },
+              "classification_capabilities": { "$ref": "#/$defs/assetRegistryCapabilities" }
+            }
+          }
+        }
+      ]
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fingerprint",
+        "rule_id",
+        "family_id",
+        "classification",
+        "severity",
+        "summary",
+        "locations",
+        "evidence",
+        "owners",
+        "redacted"
+      ],
+      "properties": {
+        "fingerprint": { "$ref": "#/$defs/sha256" },
+        "rule_id": { "type": "string" },
+        "family_id": { "type": "string" },
+        "classification": {
+          "enum": ["known_gap", "new_unowned_gap", "observation", "candidate_resolved"]
+        },
+        "severity": { "enum": ["info", "warning", "error"] },
+        "summary": { "type": "string" },
+        "locations": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "evidence": { "type": "string" },
+        "owners": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["issue", "url"],
+            "properties": {
+              "issue": { "type": "integer", "minimum": 1 },
+              "url": { "type": "string", "format": "uri" }
+            }
+          }
+        },
+        "redacted": { "type": "boolean" }
+      }
+    }
+  }
+}
