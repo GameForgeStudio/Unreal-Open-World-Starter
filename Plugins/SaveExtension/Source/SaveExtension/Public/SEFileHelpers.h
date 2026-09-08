@@ -103,6 +103,11 @@ struct FSaveFile
 class SAVEEXTENSION_API FSEFileHelpers
 {
 public:
+	/** Explicit storage destination for applications whose user saves outlive an install.
+	 * FilePath is a trusted application path, not player-supplied slot text. */
+	static bool SaveFileToPathSync(USaveSlot* Slot, FStringView FilePath, bool bUseCompression = true);
+	static USaveSlot* LoadFileFromPathSync(FStringView FilePath, USaveSlot* SlotHint,
+		bool bLoadData, const USaveManager* Manager);
 	static bool SaveFileSync(
 		USaveSlot* Slot, FStringView OverrideSlotName = {}, const bool bUseCompression = true);
 	static UE::Tasks::TTask<bool> SaveFile(

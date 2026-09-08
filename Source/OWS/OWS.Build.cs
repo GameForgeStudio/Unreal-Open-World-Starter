@@ -23,6 +23,7 @@ public class OWS : ModuleRules
 			"EnhancedInput",
 			"KinetiForge",
 			"NetCore",
+			"NavigationSystem",
 			"PhysicsCore",
 			"Slate",
 			"SlateCore"

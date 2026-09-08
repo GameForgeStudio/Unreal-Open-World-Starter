@@ -2,6 +2,9 @@
 
 #include "Camera/PlayerCameraManager.h"
 #include "Components/PrimitiveComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "NavigationSystem.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "DrawDebugHelpers.h"
 #include "Engine/OverlapResult.h"
@@ -13,6 +16,7 @@
 #include "Styling/CoreStyle.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Text/STextBlock.h"
+#include "OWSSelectorObservation.inl"
 
 namespace
 {
@@ -91,9 +95,9 @@ void UOWSSelectorComponent::EnsureDefaultConfiguration()
 	Activate.Name = TEXT("Activate");
 	Activate.ActivationKeys = { EKeys::F, EKeys::Gamepad_FaceButton_Left };
 	Activate.SelectorStack = {
-		MakeSphereSelector(TEXT("Reach Orb"), 125.0f),
-		MakeConeSelector(TEXT("Short Wide Cone"), 1500.0f, 45.0f),
-		MakeConeSelector(TEXT("Long Narrow Cone"), 4000.0f, 25.0f)
+		MakeSphereSelector(TEXT("Reach Orb"), 150.0f),
+		MakeConeSelector(TEXT("Short Wide Cone"), 3000.0f, 70.0f),
+		MakeConeSelector(TEXT("Long Narrow Cone"), 10000.0f, 30.0f)
 	};
 	SelectorFunctions.Add(MoveTemp(Activate));
 }
@@ -101,6 +105,15 @@ void UOWSSelectorComponent::EnsureDefaultConfiguration()
 void UOWSSelectorComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	// Migrate only recognized old defaults, retaining deliberately customized entries.
+	for (FOWSSelectorFunction& Function : SelectorFunctions)
+		for (FOWSRangeSelector& Entry : Function.SelectorStack)
+		{
+			if (Entry.Name == TEXT("Reach Orb") && Entry.Radius == 125.f) Entry.Radius = 150.f;
+			if (Entry.Name == TEXT("Short Wide Cone") && Entry.Length == 1500.f && Entry.HalfAngleDegrees == 45.f) { Entry.Length = 3000.f; Entry.HalfAngleDegrees = 70.f; }
+			if (Entry.Name == TEXT("Long Narrow Cone") && Entry.Length == 4000.f && Entry.HalfAngleDegrees == 25.f) { Entry.Length = 10000.f; Entry.HalfAngleDegrees = 30.f; }
+		}
+	NextObservationAt = FPlatformTime::Seconds() + (GetUniqueID() % 100) * .005;
 	EnsureDefaultConfiguration();
 	UE_LOG(LogTemp, Display, TEXT("[OWSSelector] BeginPlay owner=%s class=%s world=%d"),
 		GetOwner() ? *GetOwner()->GetName() : TEXT("none"),
@@ -144,6 +157,10 @@ void UOWSSelectorComponent::TickComponent(
 	}
 
 	const ACharacter* Character = Cast<ACharacter>(GetOwner());
+	if (Character && World->IsGameWorld() && FPlatformTime::Seconds() >= NextObservationAt)
+	{
+		CaptureObservation();
+	}
 	APlayerController* Controller = Character
 		? Cast<APlayerController>(Character->GetController())
 		: nullptr;
@@ -402,7 +419,7 @@ void UOWSSelectorComponent::UpdateDetectedActor()
 	FVector HeadForward;
 	GetCharacterHeadTransform(*Character, HeadOrigin, HeadForward);
 	HeadForward = Controller->GetControlRotation().Vector();
-	UpdateAwarenessActors(*Character, HeadOrigin, HeadForward);
+	// Awareness is refreshed by the bounded head-view capture, independently of possession.
 
 	FCollisionObjectQueryParams PrecisionObjectParams;
 	for (const ECollisionChannel Channel : PrecisionRayObjectTypes)

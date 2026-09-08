@@ -246,6 +246,13 @@ void FSaveFile::SerializeData(USaveSlotData* SlotData)
 
 bool FSEFileHelpers::SaveFileSync(USaveSlot* Slot, FStringView OverrideSlotName, const bool bUseCompression)
 {
+	if (!Slot) return false;
+	const FString SlotName = OverrideSlotName.IsEmpty() ? Slot->Name.ToString() : FString{OverrideSlotName};
+	return SaveFileToPathSync(Slot, GetSlotPath(SlotName), bUseCompression);
+}
+
+bool FSEFileHelpers::SaveFileToPathSync(USaveSlot* Slot, FStringView FilePath, const bool bUseCompression)
+{
 	TRACE_CPUPROFILER_EVENT_SCOPE(FSEFileHelpers::SaveFileSync);
 
 	if (!ensureMsgf(Slot, TEXT("Slot object must be valid")) ||
@@ -254,8 +261,7 @@ bool FSEFileHelpers::SaveFileSync(USaveSlot* Slot, FStringView OverrideSlotName,
 		return false;
 	}
 
-	FString SlotName = OverrideSlotName.IsEmpty() ? Slot->Name.ToString() : FString{OverrideSlotName};
-	FScopedFileWriter FileWriter(GetSlotPath(SlotName));
+	FScopedFileWriter FileWriter(FilePath);
 	if (FileWriter.IsValid())
 	{
 		FSaveFile File{};
@@ -279,14 +285,16 @@ UE::Tasks::TTask<bool> FSEFileHelpers::SaveFile(
 USaveSlot* FSEFileHelpers::LoadFileSync(
 	FStringView SlotName, USaveSlot* SlotHint, bool bLoadData, const USaveManager* Manager)
 {
-	TRACE_CPUPROFILER_EVENT_SCOPE(FSEFileHelpers::LoadFileSync);
-	if (SlotName.IsEmpty() && SlotHint)
-	{
-		const FString SlotNameStr = SlotHint->Name.ToString();
-		SlotName = SlotNameStr;
-	}
+	const FString ResolvedName = SlotName.IsEmpty() && SlotHint ? SlotHint->Name.ToString() : FString{SlotName};
+	return LoadFileFromPathSync(GetSlotPath(ResolvedName), SlotHint, bLoadData, Manager);
+}
 
-	FScopedFileReader Reader(GetSlotPath(SlotName));
+USaveSlot* FSEFileHelpers::LoadFileFromPathSync(
+	FStringView FilePath, USaveSlot* SlotHint, bool bLoadData, const USaveManager* Manager)
+{
+	TRACE_CPUPROFILER_EVENT_SCOPE(FSEFileHelpers::LoadFileSync);
+
+	FScopedFileReader Reader(FilePath);
 	if (Reader.IsValid())
 	{
 		FSaveFile File{};
@@ -296,7 +304,7 @@ USaveSlot* FSEFileHelpers::LoadFileSync(
 			TRACE_CPUPROFILER_EVENT_SCOPE(DeserializeInfo)
 			Slot = Cast<USaveSlot>(DeserializeObject(SlotHint, File.ClassName, Manager, File.Bytes));
 		}
-		if (bLoadData)
+		if (bLoadData && Slot)
 		{
 			TRACE_CPUPROFILER_EVENT_SCOPE(DeserializeData)
 			Slot->AssignData(Cast<USaveSlotData>(
