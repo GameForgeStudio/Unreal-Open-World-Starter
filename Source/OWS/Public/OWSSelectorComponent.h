@@ -9,9 +9,20 @@
 
 class AActor;
 class APlayerController;
+class UPrimitiveComponent;
 class UOWSInteractionTargetComponent;
 class STextBlock;
 class SWidget;
+
+/** Snapshot-local endpoint evidence, not permission to move or proof of a safe route. */
+struct OWS_API FOWSObservedDestination
+{
+	FGuid SnapshotId;
+	int32 CandidateId = INDEX_NONE;
+	FVector SupportLocation = FVector::ZeroVector;
+	FVector CapsuleLocation = FVector::ZeroVector;
+	TWeakObjectPtr<UPrimitiveComponent> SupportComponent;
+};
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
 	FOWSActivateTargetSignature,
@@ -99,8 +110,14 @@ public:
 	UOWSSelectorComponent();
 
 	/** Fresh, bounded head-view snapshot. Never loads cells or dispatches AI. */
-	FString CaptureObservation();
+	FString CaptureObservation(bool bPrepareDestinations = false);
 	const FString& GetLatestObservation() const { return LatestObservation; }
+	/** Copy immediately with the observation; the next capture replaces this evidence.
+	 * Execution must revalidate age, world, support, clearance and route independently. */
+	const TArray<FOWSObservedDestination>& GetObservedDestinations() const { return ObservedDestinations; }
+	const FString& GetDestinationPreparationStatus() const { return DestinationPreparationStatus; }
+	const FGuid& GetObservationSnapshotId() const { return ObservationSnapshotId; }
+	double GetObservationCaptureTime() const { return ObservationCaptureTime; }
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="OWS|Selector")
 	TArray<FOWSSelectorFunction> SelectorFunctions;
@@ -200,5 +217,9 @@ private:
 
 	bool bActivationKeyWasDown = false;
 	FString LatestObservation;
+	FGuid ObservationSnapshotId;
+	double ObservationCaptureTime = 0.;
+	TArray<FOWSObservedDestination> ObservedDestinations;
+	FString DestinationPreparationStatus;
 	double NextObservationAt = 0.0;
 };

@@ -1,8 +1,14 @@
 // OWS #182. Uses the existing modular selector stack, not a second vision system.
-FString UOWSSelectorComponent::CaptureObservation()
+FString UOWSSelectorComponent::CaptureObservation(bool bPrepareDestinations)
 {
 	NextObservationAt = FPlatformTime::Seconds() + .5;
 	AwarenessActors.Reset();
+	ObservedDestinations.Reset();
+	ObservationSnapshotId = FGuid::NewGuid();
+	ObservationCaptureTime = FPlatformTime::Seconds();
+	DestinationPreparationStatus = bPrepareDestinations
+		? TEXT("Destination preparation unavailable: no valid observation.")
+		: TEXT("Destination preparation not requested.");
 	UWorld* World = GetWorld();
 	const ACharacter* Character = Cast<ACharacter>(GetOwner());
 	if (!World || !Character) return LatestObservation = TEXT("Observation unavailable: no character world.");
@@ -36,10 +42,64 @@ FString UOWSSelectorComponent::CaptureObservation()
 		return false;
 	};
 	LatestObservation = FString::Printf(TEXT("Observation %s captured UTC %s at button/sensor capture time. Viewpoint is the character's current body-facing head position. Only loaded, collision-visible surfaces were sampled. This is a limited sample, not proof other objects are absent.\n"),
-		*FGuid::NewGuid().ToString(), *FDateTime::UtcNow().ToIso8601());
+		*ObservationSnapshotId.ToString(), *FDateTime::UtcNow().ToIso8601());
 	if (MaxRange <= 0 || Cones.IsEmpty()) return LatestObservation += TEXT("No vision cones enabled.");
 	TArray<FOverlapResult> Overlaps;
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(OWSCharacterObservation), true, Character);
+	const UCharacterMovementComponent* Movement = Character->GetCharacterMovement();
+	const UCapsuleComponent* Capsule = Character->GetCapsuleComponent();
+	UNavigationSystemV1* Navigation = bPrepareDestinations ? FNavigationSystem::GetCurrent<UNavigationSystemV1>(World) : nullptr;
+	const ANavigationData* NavData = Navigation && Movement
+		? Navigation->GetNavDataForProps(Movement->GetNavAgentPropertiesRef(), Character->GetActorLocation()) : nullptr;
+	int32 DestinationAttempts = 0;
+	// Explicit capture only. At most eight projections, forty support probes,
+	// eight visibility checks and eight clearance overlaps. Never requests paths
+	// or creates navigation data. Missing streamed navigation means no candidate.
+	auto PrepareDestination = [&](const FHitResult& VisibleHit)
+	{
+		if (!bPrepareDestinations || !NavData || !Movement || !Capsule || DestinationAttempts >= 8
+			|| !Movement->IsWalkable(VisibleHit) || Cast<APawn>(VisibleHit.GetActor())) return;
+		const UPrimitiveComponent* Support = VisibleHit.GetComponent();
+		if (!Support || Support->IsSimulatingPhysics()) return;
+		const float Radius = Capsule->GetScaledCapsuleRadius();
+		const float HalfHeight = Capsule->GetScaledCapsuleHalfHeight();
+		for (const FOWSObservedDestination& Existing : ObservedDestinations)
+			if (FVector::DistSquared(Existing.SupportLocation, VisibleHit.ImpactPoint) < FMath::Square(Radius * 2.f)) return;
+		++DestinationAttempts;
+		FNavLocation NavPoint;
+		const FVector Extent(10., 10., 10.);
+		if (!Navigation->ProjectPointToNavigation(VisibleHit.ImpactPoint, NavPoint, Extent, NavData)
+			|| FVector::DistSquared(NavPoint.Location, VisibleHit.ImpactPoint) > 100.
+			|| !InView(NavPoint.Location)) return;
+		FHitResult CenterSupport;
+		const FVector Offsets[] = { FVector::ZeroVector, FVector(Radius, 0, 0),
+			FVector(-Radius, 0, 0), FVector(0, Radius, 0), FVector(0, -Radius, 0) };
+		for (int32 I = 0; I < UE_ARRAY_COUNT(Offsets); ++I)
+		{
+			const FVector Sample = NavPoint.Location + Offsets[I];
+			FHitResult Floor;
+			if (!World->LineTraceSingleByChannel(Floor, Sample + FVector(0, 0, 10),
+				Sample - FVector(0, 0, 10), ECC_Visibility, Params)
+				|| Floor.GetComponent() != Support || !Movement->IsWalkable(Floor)) return;
+			if (I == 0) CenterSupport = Floor;
+		}
+		FHitResult Sight;
+		if (!InView(CenterSupport.ImpactPoint)
+			|| !World->LineTraceSingleByChannel(Sight, Origin,
+				CenterSupport.ImpactPoint - FVector(0, 0, 2), ECC_Visibility, Params)
+			|| Sight.GetComponent() != Support
+			|| FVector::DistSquared(Sight.ImpactPoint, CenterSupport.ImpactPoint) > 4.) return;
+		const FVector StandingCenter = CenterSupport.ImpactPoint + FVector(0, 0, HalfHeight + 2.f);
+		if (World->OverlapBlockingTestByChannel(StandingCenter, Capsule->GetComponentQuat(),
+			Capsule->GetCollisionObjectType(), FCollisionShape::MakeCapsule(Radius, HalfHeight),
+			Params, FCollisionResponseParams(Capsule->GetCollisionResponseToChannels()))) return;
+		FOWSObservedDestination& Candidate = ObservedDestinations.AddDefaulted_GetRef();
+		Candidate.SnapshotId = ObservationSnapshotId;
+		Candidate.CandidateId = ObservedDestinations.Num();
+		Candidate.SupportLocation = CenterSupport.ImpactPoint;
+		Candidate.CapsuleLocation = StandingCenter;
+		Candidate.SupportComponent = VisibleHit.GetComponent();
+	};
 	World->OverlapMultiByObjectType(Overlaps, Origin, FQuat::Identity, Objects, FCollisionShape::MakeSphere(MaxRange), Params);
 	TArray<UPrimitiveComponent*> Candidates;
 	for (const FOverlapResult& Overlap : Overlaps)
@@ -59,7 +119,10 @@ FString UOWSSelectorComponent::CaptureObservation()
 		if (!World->LineTraceSingleByChannel(Hit, Origin, Point, ECC_Visibility, Params) || !InView(Hit.ImpactPoint)) return;
 		UPrimitiveComponent* Component = Hit.GetComponent();
 		AActor* Actor = Hit.GetActor();
-		if (!Component || !Actor || Actor->IsHidden() || !Component->IsVisible() || Seen.Contains(Component)) return;
+		if (!Component || !Actor || Actor->IsHidden() || !Component->IsVisible()) return;
+		// Merged road meshes may contain multiple distinct visible standing points.
+		PrepareDestination(Hit);
+		if (Seen.Contains(Component)) return;
 		Seen.Add(Component);
 		AwarenessActors.Add(Actor);
 		const FVector Delta = Hit.ImpactPoint - Origin;
@@ -83,5 +146,10 @@ FString UOWSSelectorComponent::CaptureObservation()
 		Probe(Box.GetCenter());
 	}
 	if (!Count) LatestObservation += TEXT("No identifiable visible surfaces were obtained. Do not invent a scene.");
+	if (bPrepareDestinations)
+		DestinationPreparationStatus = NavData
+			? FString::Printf(TEXT("%d visible endpoint candidates from %d bounded checks. Support, capsule clearance and loaded NavMesh checked at capture time only. Routes and movement are NOT authorized or validated."),
+				ObservedDestinations.Num(), DestinationAttempts)
+			: TEXT("No endpoint candidates: compatible loaded NavMesh is unavailable. No navigation was created or loaded.");
 	return LatestObservation;
 }
