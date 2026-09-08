@@ -113,6 +113,22 @@ bool FOWSMetaRoadBoundaryFilterTest::RunTest(const FString& Parameters)
         TestEqual(TEXT("Closing sample retains lateral offset"), End.ROffset, Offset);
     }
 
+
+    // OWS #178: recycled edge slots must receive new endpoints and metadata.
+    MetaRoad::FDynamicGraph2d Reuse;
+    const int R0=Reuse.AppendVertex(FVector2d(0,0)), R1=Reuse.AppendVertex(FVector2d(10,0));
+    const int R2=Reuse.AppendVertex(FVector2d(0,10)), R3=Reuse.AppendVertex(FVector2d(10,10));
+    const int Removed=Reuse.AppendEdge(R0,R1,1,11);
+    Reuse.RemoveEdge(Removed,false);
+    const int Added=Reuse.AppendEdge(R2,R3,2,22);
+    const auto Stored=Reuse.GetEdgeCopy(Added);
+    TestEqual(TEXT("Recycled slot replaces endpoint A"),Stored.A,R2);
+    TestEqual(TEXT("Recycled slot replaces endpoint B"),Stored.B,R3);
+    TestEqual(TEXT("Recycled slot replaces group"),Stored.Group,2);
+    TestTrue(TEXT("Recycled slot retains new polyline"),Stored.PolylinesID.Contains(22));
+    TestFalse(TEXT("Recycled slot discards old polyline"),Stored.PolylinesID.Contains(11));
+    TestEqual(TEXT("Recycled edge is discoverable at its new endpoints"),Reuse.FindEdge(R2,R3),Added);
+
     return !HasAnyErrors();
 }
 

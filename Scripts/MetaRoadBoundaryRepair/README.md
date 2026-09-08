@@ -1,4 +1,4 @@
-# Optional MetaRoad city-bake repairs — issues #174, #176, and #177
+# Optional MetaRoad city-bake repairs — issues #174, #176, #177, and #178
 
 This is opt-in maintenance for a **separately licensed MetaRoad 3.2.0 installation**.
 MetaRoad remains outside OWS and is not an OWS dependency. These files do not
@@ -31,6 +31,14 @@ The optional `RepairClosedLoopSeam.ps1` normalizes only the exact full-length
 sample to the first spline key, retaining the supplied longitudinal and lateral
 offsets. It does not change lane widths, source points, or polygon validation.
 
+Issue #178 restores recycled edge-slot initialization. `ElementAt` initializes a
+slot only when extending the dynamic vector; it leaves old data in reused slots.
+`RepairGraphEdgeSlots.ps1` restores the original GeometryCore `InsertAt` behavior
+while retaining MetaRoad's polyline-ID metadata. This repairs the graph at its
+source instead of reconstructing adjacency or dropping edges after corruption.
+Because the allocator is inline, rebuild all plugin and consumer modules using
+this header, not just the automation fixture.
+
 ## Apply locally
 
 Review the source and the script first. Run from the repository root:
@@ -39,10 +47,12 @@ Review the source and the script first. Run from the repository root:
 # Read-only preview (the default)
 ./Scripts/MetaRoadBoundaryRepair/RepairBoundaryWalk.ps1 -PluginDirectory '<licensed plugin directory>'
 ./Scripts/MetaRoadBoundaryRepair/RepairClosedLoopSeam.ps1 -PluginDirectory '<licensed plugin directory>'
+./Scripts/MetaRoadBoundaryRepair/RepairGraphEdgeSlots.ps1 -PluginDirectory '<licensed plugin directory>'
 
 # Explicit mutation, with an existing controlled backup directory
 ./Scripts/MetaRoadBoundaryRepair/RepairBoundaryWalk.ps1 -PluginDirectory '<licensed plugin directory>' -Apply -BackupDirectory '<controlled scratch directory>'
 ./Scripts/MetaRoadBoundaryRepair/RepairClosedLoopSeam.ps1 -PluginDirectory '<licensed plugin directory>' -Apply -BackupDirectory '<controlled scratch directory>'
+./Scripts/MetaRoadBoundaryRepair/RepairGraphEdgeSlots.ps1 -PluginDirectory '<licensed plugin directory>' -Apply -BackupDirectory '<controlled scratch directory>'
 ```
 
 The script requires version 3.2.0 and exactly one matching traversal block. It
@@ -136,3 +146,10 @@ native cases passed at 16:05:16 UTC. Real cell 284 then generated and saved at
 0 with zero errors (existing project warnings remain). Temporary seam diagnostics
 are being removed. The full city bake, cleanup, and issue closure remain pending;
 these results do not claim the whole city is complete.
+
+The resumed bake saved 1,152 cells before #178 surfaced. Native edge-table and
+adjacency capture identified an edge missing from one endpoint's incidence list.
+The original remove/reinsert fixture failed all six allocator assertions at
+16:22:42 UTC: stale endpoints, group and polyline metadata, and failed lookup.
+The allocator repair is rebuilding; post-repair and real-cell verification are
+pending. No raw city graph is included in this repository.
