@@ -160,9 +160,13 @@ included in this repository.
 
 `RepairPolylineFrames.ps1` is the opt-in #179 repair, with the same preview,
 explicit apply, backup, version and drift guards as the other scripts. It preserves
-the source spline orientation for isolated samples and zero projected tangents;
-ordinary nonzero tangent frame construction is unchanged. Native deployment and
-subsequent bake evidence are pending. No whole-city completion is claimed.
+the source spline orientation for isolated samples and invalid projected frames.
+The follow-up accepts both pristine source and the first #179 repair, checks
+finite/nonzero directions, and validates all three frame axes before quaternion
+conversion. Valid frame construction is unchanged; no points are removed.
+The 29,290-cell bake saved, but its repeated frame ensure showed the original
+tangent-only guard was insufficient. Follow-up native deployment and geometry
+evidence remain pending. No whole-city completion is claimed.
 
 `RepairPolylineRecovery.ps1` addresses #181: endpoint-only shortest paths can
 shortcut a self-overlapping authored road line and leave its omitted vertices
