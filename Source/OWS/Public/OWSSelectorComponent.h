@@ -3,6 +3,7 @@
 #include "Components/ActorComponent.h"
 #include "Engine/EngineTypes.h"
 #include "InputCoreTypes.h"
+#include "OWSObservationSource.h"
 #include "Templates/SharedPointer.h"
 
 #include "OWSSelectorComponent.generated.h"
@@ -102,7 +103,7 @@ struct OWS_API FOWSSelectorFunction
  * the current target, debug readout, and Activate dispatch.
  */
 UCLASS(ClassGroup=(OWS), meta=(BlueprintSpawnableComponent))
-class OWS_API UOWSSelectorComponent final : public UActorComponent
+class OWS_API UOWSSelectorComponent final : public UActorComponent, public IOWSObservationSource
 {
 	GENERATED_BODY()
 
@@ -110,7 +111,7 @@ public:
 	UOWSSelectorComponent();
 
 	/** Fresh, bounded head-view snapshot. Never loads cells or dispatches AI. */
-	FString CaptureObservation(bool bPrepareDestinations = false);
+	virtual FString CaptureObservation(bool bPrepareDestinations = false) override;
 	const FString& GetLatestObservation() const { return LatestObservation; }
 	/** Copy immediately with the observation; the next capture replaces this evidence.
 	 * Execution must revalidate age, world, support, clearance and route independently. */
