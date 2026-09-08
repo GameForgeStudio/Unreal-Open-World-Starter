@@ -151,5 +151,15 @@ The resumed bake saved 1,152 cells before #178 surfaced. Native edge-table and
 adjacency capture identified an edge missing from one endpoint's incidence list.
 The original remove/reinsert fixture failed all six allocator assertions at
 16:22:42 UTC: stale endpoints, group and polyline metadata, and failed lookup.
-The allocator repair is rebuilding; post-repair and real-cell verification are
-pending. No raw city graph is included in this repository.
+The allocator repair passed the native regression at 16:29:36 UTC. Its installed
+editor DLL SHA-256 was `6BC41897CA52E592AB68BFFE425FFE30E9756299E7907C9452D28368AC3E5628`.
+The consumer rebuilt successfully. Real cell 1152 saved at 16:34:20 UTC and advanced
+the checkpoint to 1153. That run exited 1 because a separate zero-tangent frame
+ensure remains (#179), not because the boundary failed. No raw city graph is
+included in this repository.
+
+`RepairPolylineFrames.ps1` is the opt-in #179 repair, with the same preview,
+explicit apply, backup, version and drift guards as the other scripts. It preserves
+the source spline orientation for isolated samples and zero projected tangents;
+ordinary nonzero tangent frame construction is unchanged. Native deployment and
+subsequent bake evidence are pending. No whole-city completion is claimed.
