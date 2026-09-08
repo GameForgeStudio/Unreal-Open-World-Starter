@@ -1,4 +1,4 @@
-# Optional MetaRoad boundary repair — issue #174
+# Optional MetaRoad boundary repairs — issues #174 and #176
 
 This is opt-in maintenance for a **separately licensed MetaRoad 3.2.0 installation**.
 MetaRoad remains outside OWS and is not an OWS dependency. These files do not
@@ -18,6 +18,12 @@ It leaves angular ordering, starting vertex selection, contour removal, and the
 caller-provided group predicate unchanged. In particular it does not turn the
 caller's exact centerline exclusion into a bit-mask exclusion: combined
 centerline/surface groups remain eligible under that predicate.
+
+Issue #176 concerns termination at shared vertices. Revisiting a junction does
+not necessarily close a contour: another lobe may remain. The second repair
+tracks directed edges, accepts closure only when the first directed edge would
+repeat, and rejects any other repeated directed edge. Angular selection is
+unchanged and the walk remains bounded by the graph's directed edges.
 
 ## Apply locally
 
@@ -63,6 +69,11 @@ each touch allowed edges. Four scenarios cover:
 Every scenario requires a four-edge first contour, no excluded connector in that
 contour, and recovery of both disconnected surfaces through `FindBoundaries`.
 
+Additional fixtures cover two squares sharing a non-start vertex, two triangles
+sharing the start vertex, and termination of an open single-edge graph. Both
+shared-vertex fixtures require the entire perimeter and both lobes to survive
+`FindBoundaries`, not just a successful return value.
+
 Also rebake the consumer's previously failing cell through its real native pipeline.
 A source edit, successful project Live Coding build, or passing synthetic test
 alone does not prove that the installed plugin DLL changed or that the city cell
@@ -85,7 +96,14 @@ host, not the old engine DLL. There were zero errors and two existing Python-nam
 collision warnings concerning MetaRoad enum/struct exposure. The commandlet exited
 without opening a map, entering Play, or restarting the user's editor.
 
-Project Live Coding did not rebuild the precompiled engine MetaRoad module. The
-user's open editor still has the old DLL loaded: installing the replacement and
-successfully rebaking real city cell 280 remain pending. The native regression pass
-does not establish that this defect is the sole cause of the city-cell failure.
+After the user saved and closed the editor, the #174 replacement was installed
+and EntourageUEEditor rebuilt. Real city cell 280 still failed without advancing
+its checkpoint. Its graph contains 1,920 vertices and 2,237 edges in one connected
+component. The native walk rejected a shared-vertex revisit after 154 edges.
+This led to separate issue #176; no consumer graph data is redistributed here.
+
+At 2026-09-08 15:29:24 UTC, the expanded native regression against the #174-only
+DLL reproduced #176: shared non-start closure failed and retained six of eight
+edges, while shared-start closure prematurely retained three of six edges.
+The original four edge-filter cases continued to pass. The #176 repair and
+real-cell retry remain under verification; neither issue is being closed yet.

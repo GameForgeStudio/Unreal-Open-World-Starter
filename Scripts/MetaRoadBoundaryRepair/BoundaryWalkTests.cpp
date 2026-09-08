@@ -51,6 +51,48 @@ bool FOWSMetaRoadBoundaryFilterTest::RunTest(const FString& Parameters)
         TestEqual(Label + TEXT(" extracts both disconnected surfaces"),
             OpUtils::FindBoundaries(Graph, Skipped, Boundaries, Filter), 2);
     }
+    // OWS #176: an articulation vertex may recur before the outer face closes.
+    for (bool bSharedStart : { false, true })
+    {
+        MetaRoad::FDynamicGraph2d Graph;
+        auto Add = [&](double X, double Y) { return Graph.AppendVertex(FVector2d(X,Y)); };
+        auto Join = [&](int A, int B) { Graph.AppendEdge(A,B,1); };
+        int32 ExpectedEdges;
+        if (!bSharedStart)
+        {
+            const int A=Add(0,0), B=Add(10,0), C=Add(10,10), D=Add(0,10);
+            const int E=Add(20,10), F=Add(20,20), G=Add(10,20);
+            Join(A,B); Join(B,C); Join(C,D); Join(D,A);
+            Join(C,E); Join(E,F); Join(F,G); Join(G,C);
+            ExpectedEdges=8;
+        }
+        else
+        {
+            const int A=Add(0,0), B=Add(10,5), C=Add(5,10), D=Add(-10,5), E=Add(-5,10);
+            Join(A,B); Join(B,C); Join(C,A);
+            Join(A,E); Join(E,D); Join(D,A);
+            ExpectedEdges=6;
+        }
+        const FString Label=bSharedStart ? TEXT("Shared start") : TEXT("Shared non-start");
+        TArray<FIndex2i> Boundary;
+        TestTrue(Label + TEXT(" closes"), OpUtils::FindBoundary(Graph, {}, Boundary, [](int) { return true; }));
+        TestEqual(Label + TEXT(" preserves both lobes"), Boundary.Num(), ExpectedEdges);
+        TSet<uint64> Covered;
+        for (const FIndex2i E : Boundary)
+            Covered.Add((uint64(uint32(FMath::Min(E.A,E.B))) << 32) | uint32(FMath::Max(E.A,E.B)));
+        TestEqual(Label + TEXT(" includes every perimeter edge"), Covered.Num(), ExpectedEdges);
+        TArray<TArray<FIndex2i>> Boundaries;
+        TestEqual(Label + TEXT(" extracts one complete outer walk"),
+            OpUtils::FindBoundaries(Graph, {}, Boundaries, [](int) { return true; }), 1);
+        if (Boundaries.Num()==1)
+            TestEqual(Label + TEXT(" extraction retains both lobes"), Boundaries[0].Num(), ExpectedEdges);
+    }
+    MetaRoad::FDynamicGraph2d Open;
+    const int A=Open.AppendVertex(FVector2d(0,0)), B=Open.AppendVertex(FVector2d(10,0));
+    Open.AppendEdge(A,B,1);
+    TArray<FIndex2i> OpenBoundary;
+    TestFalse(TEXT("Open input terminates without a contour"),
+        OpUtils::FindBoundary(Open, {}, OpenBoundary, [](int) { return true; }));
     return !HasAnyErrors();
 }
 
