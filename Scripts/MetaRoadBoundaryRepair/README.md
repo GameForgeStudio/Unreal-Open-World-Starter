@@ -163,3 +163,13 @@ explicit apply, backup, version and drift guards as the other scripts. It preser
 the source spline orientation for isolated samples and zero projected tangents;
 ordinary nonzero tangent frame construction is unchanged. Native deployment and
 subsequent bake evidence are pending. No whole-city completion is claimed.
+
+`RepairPolylineRecovery.ps1` addresses #181: endpoint-only shortest paths can
+shortcut a self-overlapping authored road line and leave its omitted vertices
+without surface ownership. Inserted open polylines now retain their original
+sample order, and recovery follows each consecutive sample pair. Existing ring
+and magnetized-path APIs without those samples keep their previous recovery.
+The script previews by default, requires explicit apply and a controlled backup,
+rejects version/source drift and partial application, and never deletes geometry.
+Rebuild MetaRoadEditor and dependent modules because FLineInfo changes layout.
+The native real-cell retry remains pending; this does not close issue #181.
