@@ -1,0 +1,165 @@
+{
+  "schema_version": 1,
+  "families": [
+    {
+      "id": "runtime-test-editor-mixing",
+      "classification": "known_gap",
+      "description": "Runtime module boundaries currently contain test sources or editor-only dependencies.",
+      "rule_ids": [
+        "BASE-MOD-001",
+        "BASE-BOUND-001"
+      ],
+      "owners": [
+        {
+          "issue": 116,
+          "url": "https://github.com/GameForgeStudio/Unreal-Open-World-Starter/issues/116"
+        },
+        {
+          "issue": 122,
+          "url": "https://github.com/GameForgeStudio/Unreal-Open-World-Starter/issues/122"
+        }
+      ]
+    },
+    {
+      "id": "owscore-reverse-content-references",
+      "classification": "known_gap",
+      "description": "OWSCore currently reaches project or maintained-fork content through literal paths.",
+      "rule_ids": [
+        "BASE-REF-TEXT-001"
+      ],
+      "owners": [
+        {
+          "issue": 116,
+          "url": "https://github.com/GameForgeStudio/Unreal-Open-World-Starter/issues/116"
+        },
+        {
+          "issue": 117,
+          "url": "https://github.com/GameForgeStudio/Unreal-Open-World-Starter/issues/117"
+        },
+        {
+          "issue": 119,
+          "url": "https://github.com/GameForgeStudio/Unreal-Open-World-Starter/issues/119"
+        },
+        {
+          "issue": 131,
+          "url": "https://github.com/GameForgeStudio/Unreal-Open-World-Starter/issues/131"
+        },
+        {
+          "issue": 121,
+          "url": "https://github.com/GameForgeStudio/Unreal-Open-World-Starter/issues/121"
+        }
+      ]
+    },
+    {
+      "id": "ows-public-provider-leakage",
+      "classification": "known_gap",
+      "description": "The current shell exposes or directly consumes KinetiForge or Chaos provider implementation surfaces.",
+      "rule_ids": [
+        "BASE-MOD-001",
+        "BASE-API-001",
+        "BASE-REF-TEXT-001"
+      ],
+      "owners": [
+        {
+          "issue": 108,
+          "url": "https://github.com/GameForgeStudio/Unreal-Open-World-Starter/issues/108"
+        },
+        {
+          "issue": 120,
+          "url": "https://github.com/GameForgeStudio/Unreal-Open-World-Starter/issues/120"
+        },
+        {
+          "issue": 163,
+          "url": "https://github.com/GameForgeStudio/Unreal-Open-World-Starter/issues/163"
+        },
+        {
+          "issue": 122,
+          "url": "https://github.com/GameForgeStudio/Unreal-Open-World-Starter/issues/122"
+        }
+      ]
+    },
+    {
+      "id": "saveextension-private-classviewer-include",
+      "classification": "known_gap",
+      "description": "SaveExtension Editor currently includes a private ClassViewer header.",
+      "rule_ids": [
+        "BASE-API-001"
+      ],
+      "owners": [
+        {
+          "issue": 134,
+          "url": "https://github.com/GameForgeStudio/Unreal-Open-World-Starter/issues/134"
+        }
+      ]
+    },
+    {
+      "id": "configuration-and-cook-ownership",
+      "classification": "known_gap",
+      "description": "Configuration has duplicate or conflicting ownership and the current cook includes an engine example input directory.",
+      "rule_ids": [
+        "BASE-CONFIG-001",
+        "BASE-COOK-001"
+      ],
+      "owners": [
+        {
+          "issue": 107,
+          "url": "https://github.com/GameForgeStudio/Unreal-Open-World-Starter/issues/107"
+        },
+        {
+          "issue": 108,
+          "url": "https://github.com/GameForgeStudio/Unreal-Open-World-Starter/issues/108"
+        },
+        {
+          "issue": 117,
+          "url": "https://github.com/GameForgeStudio/Unreal-Open-World-Starter/issues/117"
+        },
+        {
+          "issue": 121,
+          "url": "https://github.com/GameForgeStudio/Unreal-Open-World-Starter/issues/121"
+        },
+        {
+          "issue": 123,
+          "url": "https://github.com/GameForgeStudio/Unreal-Open-World-Starter/issues/123"
+        }
+      ]
+    },
+    {
+      "id": "android-file-server-sensitive-key",
+      "classification": "known_gap",
+      "description": "A sensitive Android File Server configuration key has a value; the value is always redacted.",
+      "rule_ids": [
+        "BASE-REDACT-001"
+      ],
+      "owners": [
+        {
+          "issue": 114,
+          "url": "https://github.com/GameForgeStudio/Unreal-Open-World-Starter/issues/114"
+        }
+      ]
+    },
+    {
+      "id": "binary-game-reference-leads",
+      "classification": "observation",
+      "description": "Binary packages contain candidate mount strings that require Asset Registry evidence before they are classified as dependencies.",
+      "rule_ids": [
+        "BASE-REF-ASSET-001"
+      ],
+      "owners": []
+    },
+    {
+      "id": "sigil-structutils-transitive-dependency",
+      "classification": "known_gap",
+      "description": "Sigil public headers consume StructUtils while its Build.cs does not declare StructUtils directly.",
+      "rule_ids": [
+        "BASE-MOD-001",
+        "BASE-API-001"
+      ],
+      "owners": [
+        {
+          "issue": 129,
+          "url": "https://github.com/GameForgeStudio/Unreal-Open-World-Starter/issues/129"
+        }
+      ]
+    }
+  ]
+}
