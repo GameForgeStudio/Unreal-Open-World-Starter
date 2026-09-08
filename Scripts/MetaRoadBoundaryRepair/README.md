@@ -42,7 +42,8 @@ directory under the task's ownership rules. Never restore it over later edits.
 
 `BoundaryWalkTests.cpp` is original, optional Unreal automation coverage. Compile
 it in a consumer's editor module that **already** depends on licensed
-`MetaRoadEditor`; do not add MetaRoad to OWS to run it. Use it as a `.cpp` translation
+`MetaRoadEditor`, with a direct `GeometryCore` module dependency for the graph
+container's exported functions; do not add MetaRoad to OWS to run it. Use it as a `.cpp` translation
 unit, or rename it `.inl` and include it once in an existing editor translation unit
 when adding a new file through Live Coding is not picked up. Never do both.
 
@@ -71,7 +72,20 @@ cell-level verification are recorded. Respect the user's editor restart authorit
 ## Current evidence
 
 On 2026-09-08 the graph-only test compiled and ran in the existing EntourageUE
-editor against its loaded MetaRoad DLL and reported **FAIL**. The local source
-repair was then applied. Project Live Coding did not rebuild the precompiled
-engine MetaRoad module. A separate editor-plugin build is being evaluated; no
-post-repair native pass or successful rebake of cell 280 is claimed here.
+editor against its loaded MetaRoad DLL and reported **FAIL** in all four scenarios:
+closure failed, six edges were returned instead of four, the excluded connector
+was traversed, and zero surfaces were recovered instead of two.
+
+The source repair was applied and the separately built Win64 Development editor
+plugin compiled and linked successfully (154 build actions). A temporary headless
+commandlet host then loaded that replacement MetaRoadEditor DLL, ran the same
+original regression, reported **PASS**, and exited with code 0 at
+2026-09-08 15:10:30 UTC. Its log identified the replacement DLL inside the isolated
+host, not the old engine DLL. There were zero errors and two existing Python-name
+collision warnings concerning MetaRoad enum/struct exposure. The commandlet exited
+without opening a map, entering Play, or restarting the user's editor.
+
+Project Live Coding did not rebuild the precompiled engine MetaRoad module. The
+user's open editor still has the old DLL loaded: installing the replacement and
+successfully rebaking real city cell 280 remain pending. The native regression pass
+does not establish that this defect is the sole cause of the city-cell failure.
