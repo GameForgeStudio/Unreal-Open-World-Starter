@@ -145,7 +145,7 @@ Acceptance of the Mobility architecture does not finish the broader Stage 3 exec
 2. [x] current Unreal, physics, product, animation, authoring, accessibility, AI, and multiplayer research is recorded;
 3. [x] Aurora answered every consequential open choice;
 4. [x] Aurora explicitly accepts the assembled canonical Mobility architecture, complete matrix, and backlog;
-5. [ ] #107 and #108 publish their broader compatible public contracts and independent conformance requirements against the accepted Mobility contribution;
+5. [x] #107 and #108 publish their broader compatible public contracts and independent conformance requirements against the accepted Mobility contribution;
 6. [ ] #21, #41, #48, #120, and implementation/evidence children #150–#168 are reconciled and merged as their roadmap gates require; and
 7. [ ] Aurora separately opens Stage 4 Combat.
 
