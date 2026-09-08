@@ -98,6 +98,10 @@ class OWS_API UOWSSelectorComponent final : public UActorComponent
 public:
 	UOWSSelectorComponent();
 
+	/** Fresh, bounded head-view snapshot. Never loads cells or dispatches AI. */
+	FString CaptureObservation();
+	const FString& GetLatestObservation() const { return LatestObservation; }
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="OWS|Selector")
 	TArray<FOWSSelectorFunction> SelectorFunctions;
 
@@ -195,4 +199,6 @@ private:
 	TObjectPtr<UOWSInteractionTargetComponent> LastLoggedDetectedInteractionTarget = nullptr;
 
 	bool bActivationKeyWasDown = false;
+	FString LatestObservation;
+	double NextObservationAt = 0.0;
 };
