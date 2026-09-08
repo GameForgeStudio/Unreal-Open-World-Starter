@@ -3,6 +3,7 @@
 #include "Misc/AutomationTest.h"
 #include "HAL/IConsoleManager.h"
 #include "Utils/OpUtils.h"
+#include "RoadSplineComponent.h"
 #include "RoadMeshBuild/ProceduralPolygon.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
@@ -93,6 +94,25 @@ bool FOWSMetaRoadBoundaryFilterTest::RunTest(const FString& Parameters)
     TArray<FIndex2i> OpenBoundary;
     TestFalse(TEXT("Open input terminates without a contour"),
         OpUtils::FindBoundary(Open, {}, OpenBoundary, [](int) { return true; }));
+
+    // OWS #177: a full closed linear loop must return to the same offset point.
+    URoadSplineComponent* Loop = NewObject<URoadSplineComponent>();
+    Loop->ClearSplinePoints(false);
+    for (const FVector P : { FVector(0,0,0), FVector(2000,0,0), FVector(2000,2000,0), FVector(0,2000,0) })
+        Loop->AddSplinePoint(P, ESplineCoordinateSpace::Local, false);
+    for (int32 I=0; I<4; ++I) Loop->SetSplinePointType(I, ESplinePointType::Linear, false);
+    Loop->SetClosedLoop(true, true);
+    const double Length=Loop->GetSplineLength();
+    for (double Offset : { -400.0, 0.0, 400.0 })
+    {
+        const auto Start=Loop->GetRoadPosition(0.0, Offset, ESplineCoordinateSpace::Local);
+        const auto End=Loop->GetRoadPosition(Length, Offset, ESplineCoordinateSpace::Local);
+        TestTrue(FString::Printf(TEXT("Closed linear offset %.0f seam closes"), Offset),
+            Start.Location.Equals(End.Location, 0.001));
+        TestEqual(TEXT("Closing sample retains longitudinal offset"), End.SOffset, Length);
+        TestEqual(TEXT("Closing sample retains lateral offset"), End.ROffset, Offset);
+    }
+
     return !HasAnyErrors();
 }
 

@@ -1,4 +1,4 @@
-# Optional MetaRoad boundary repairs — issues #174 and #176
+# Optional MetaRoad city-bake repairs — issues #174, #176, and #177
 
 This is opt-in maintenance for a **separately licensed MetaRoad 3.2.0 installation**.
 MetaRoad remains outside OWS and is not an OWS dependency. These files do not
@@ -25,6 +25,12 @@ tracks directed edges, accepts closure only when the first directed edge would
 repeat, and rejects any other repeated directed edge. Angular selection is
 unchanged and the walk remains bounded by the graph's directed edges.
 
+Issue #177 is a separate closed-linear-spline seam defect. Unreal evaluates the
+terminal loop key's arrival tangent differently from the outgoing first segment.
+The optional `RepairClosedLoopSeam.ps1` normalizes only the exact full-length
+sample to the first spline key, retaining the supplied longitudinal and lateral
+offsets. It does not change lane widths, source points, or polygon validation.
+
 ## Apply locally
 
 Review the source and the script first. Run from the repository root:
@@ -32,9 +38,11 @@ Review the source and the script first. Run from the repository root:
 ```powershell
 # Read-only preview (the default)
 ./Scripts/MetaRoadBoundaryRepair/RepairBoundaryWalk.ps1 -PluginDirectory '<licensed plugin directory>'
+./Scripts/MetaRoadBoundaryRepair/RepairClosedLoopSeam.ps1 -PluginDirectory '<licensed plugin directory>'
 
 # Explicit mutation, with an existing controlled backup directory
 ./Scripts/MetaRoadBoundaryRepair/RepairBoundaryWalk.ps1 -PluginDirectory '<licensed plugin directory>' -Apply -BackupDirectory '<controlled scratch directory>'
+./Scripts/MetaRoadBoundaryRepair/RepairClosedLoopSeam.ps1 -PluginDirectory '<licensed plugin directory>' -Apply -BackupDirectory '<controlled scratch directory>'
 ```
 
 The script requires version 3.2.0 and exactly one matching traversal block. It
@@ -48,7 +56,7 @@ directory under the task's ownership rules. Never restore it over later edits.
 
 `BoundaryWalkTests.cpp` is original, optional Unreal automation coverage. Compile
 it in a consumer's editor module that **already** depends on licensed
-`MetaRoadEditor`, with a direct `GeometryCore` module dependency for the graph
+`MetaRoadEditor` and `MetaRoad`, with a direct `GeometryCore` module dependency for the graph
 container's exported functions; do not add MetaRoad to OWS to run it. Use it as a `.cpp` translation
 unit, or rename it `.inl` and include it once in an existing editor translation unit
 when adding a new file through Live Coding is not picked up. Never do both.
@@ -105,5 +113,26 @@ This led to separate issue #176; no consumer graph data is redistributed here.
 At 2026-09-08 15:29:24 UTC, the expanded native regression against the #174-only
 DLL reproduced #176: shared non-start closure failed and retained six of eight
 edges, while shared-start closure prematurely retained three of six edges.
-The original four edge-filter cases continued to pass. The #176 repair and
-real-cell retry remain under verification; neither issue is being closed yet.
+The original four edge-filter cases continued to pass.
+
+The #176 repair then compiled in 128 build actions; the DLL was linked with
+Unreal's generated linker response file. At 2026-09-08 15:50:01 UTC the replacement
+DLL passed all seven scenarios (exit 0, zero errors, two existing Python-name
+warnings). Its installed SHA-256 is
+`C60CF148B24B300FD649DE5244642A699223C9E2DAAAE04B63264287B2FBC6BD`.
+
+At 15:51:24 UTC real cell 280 generated its road and building meshes, saved them,
+and advanced the checkpoint to 281. The Python script succeeded, but the commandlet
+returned exit 1 because its editor-directory defaults had not been initialized,
+producing a separate global-asset-root error before using the correct
+world-relative destination. Consumer-side commandlet initialization and a reload
+check subsequently succeeded: cell 280 survived reload, and cells 281–283 saved.
+The directory-root error did not recur.
+
+Cell 284 exposed #177. A closed square with offsets -400 and +400 cm reproduced
+the seam gap in the native fixture at 16:02:08 UTC. After the runtime repair all
+native cases passed at 16:05:16 UTC. Real cell 284 then generated and saved at
+16:06:02 UTC, advancing the persisted checkpoint to 285. That commandlet exited
+0 with zero errors (existing project warnings remain). Temporary seam diagnostics
+are being removed. The full city bake, cleanup, and issue closure remain pending;
+these results do not claim the whole city is complete.
